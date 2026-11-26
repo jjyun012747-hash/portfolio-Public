@@ -1,0 +1,1685 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Idea Bracelet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300..700;1,300..700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; border-radius: 0 !important; }
+  html, body { margin: 0; height: 100%; background: #000; color: #f2f2f0; font-family: "Inter Tight", "Pretendard", sans-serif; }
+  body { display: flex; }
+  #main { flex: 1; min-width: 0; position: relative; }
+  #page { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .b { font: 500 11px "Inter Tight", sans-serif; text-transform: uppercase; letter-spacing: .02em; padding: 4px 12px; border: 1px solid #f2f2f0; background: transparent; color: #f2f2f0; cursor: pointer; }
+  .b:hover:not(:disabled) { background: #f2f2f0; color: #000; }
+  .b.on { background: #f2f2f0; color: #000; }
+  button:disabled { opacity: .3; cursor: default; }
+  /* control dial: every row rides a huge ring cut off by the right edge (placed by layoutDial) */
+  #panel { position: absolute; top: 0; right: 0; height: 100%; overflow: hidden; font: 500 10.5px/1.35 "Inter Tight", "Pretendard", sans-serif; text-transform: uppercase; letter-spacing: .02em; }
+  #panel > * { position: absolute; left: 0; top: 0; margin: 0 !important; }
+  /* word wheel: just words fanned along a curve that bulges right; the dot marks the word in reach.
+     clicking a word turns it to the dot and opens its controls under it */
+  #panel .w .wl { display: block; font: 600 17px/1.15 "Inter Tight", "Pretendard", sans-serif; letter-spacing: -.01em; text-transform: uppercase; color: #f2f2f0;
+    background: none; border: 0; padding: 0; margin: 0 0 0 auto; cursor: pointer; text-align: right; white-space: nowrap; }
+  #panel .wd { display: none; padding: 5px 0 8px; }
+  #panel .w.open .wd { display: block; }
+  #panel .wd .sl { margin: 0; }
+  #dialDot { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #selName { margin-bottom: 12px; min-height: 14px; }
+  .h { color: #8a8a8a; margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid #f2f2f0; }
+  .h.first { border: 0; padding: 0; margin-top: 0; }
+  .sl { margin-bottom: 7px; } .sl .top { display: flex; justify-content: space-between; }
+  .sl .v { color: #8a8a8a; font-variant-numeric: tabular-nums; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 12px; background: transparent; margin: 0; cursor: pointer; display: block; }
+  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: #f2f2f0; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 6px; height: 10px; background: #f2f2f0; margin-top: -4.5px; border: 0; }
+  input[type=range]::-moz-range-track { height: 1px; background: #f2f2f0; }
+  input[type=range]::-moz-range-thumb { width: 6px; height: 10px; background: #f2f2f0; border: 0; }
+  input[type=range]:disabled { opacity: .3; }
+  input[type=text], input[type=password] { width: 100%; font: 500 12px "Inter Tight", "Pretendard", sans-serif; padding: 3px 0; border: 0; border-bottom: 1px solid #f2f2f0; background: transparent; color: #f2f2f0; outline: none; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; }
+  .chip { font: inherit; text-transform: inherit; letter-spacing: inherit; background: none; border: 0; padding: 2px 0; color: #f2f2f0; display: flex; align-items: center; gap: 6px; cursor: pointer; text-align: left; }
+  .chip::before { content: ''; flex: none; width: 9px; height: 9px; border: 1px solid #f2f2f0; }
+  .chip.on::before { background: #f2f2f0; }
+  .chip:disabled { opacity: .3; cursor: default; }
+  .tick { display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer; }
+  input[type=checkbox] { -webkit-appearance: none; appearance: none; width: 9px; height: 9px; border: 1px solid #f2f2f0; margin: 0; cursor: pointer; }
+  input[type=checkbox]:checked { background: #f2f2f0; }
+  .row2 { display: flex; gap: 6px; margin-top: 6px; } .row2 .b { flex: 1; padding: 4px 4px; }
+  .wide { width: 100%; margin-top: 6px; }
+  #pals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .pal { display: flex; height: 12px; overflow: hidden; border: 0; cursor: pointer; padding: 0; background: none; }
+  .pal.on { outline: 1px solid #f2f2f0; outline-offset: 2px; }
+  .pal i { flex: 1; } .pal i:first-child { flex: 2; }
+  details summary { cursor: pointer; color: #8a8a8a; margin-top: 8px; }
+  #busy { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 6px; white-space: nowrap; font: 500 10px "Inter Tight", "Pretendard", sans-serif; font-style: normal; text-transform: uppercase; color: #8a8a8a; }
+  /* keyword typed straight into the middle of the ring */
+  #centre { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: none; align-items: baseline; white-space: nowrap; pointer-events: none;
+    font: 400 40px "Instrument Serif", "Times New Roman", serif; color: #f2f2f0; }
+  #centre input { pointer-events: auto; font: inherit; color: inherit; background: transparent; border: 0; outline: none; padding: 0; margin: 0; text-align: center; caret-color: #f2f2f0; }
+  #centre input::placeholder { color: #8a8a8a; }
+  #top { position: absolute; top: 12px; left: 18px; display: flex; gap: 10px; align-items: center; font: 500 12px "Inter Tight", "Pretendard", sans-serif; text-transform: uppercase; }
+  #top details { position: relative; font-size: 10.5px; } #top summary { margin: 0; }
+  #top .pop { position: absolute; top: 20px; left: 0; width: 230px; background: #000; border: 1px solid #f2f2f0; padding: 10px; z-index: 3; }
+  body.work #top { display: none; }
+  body:not(.work) #panel { display: none; }
+</style>
+</head>
+<body>
+<div id="main"><canvas id="page"></canvas>
+  <div id="centre"><input id="kw" type="text" value="" placeholder="keyword" spellcheck="false" autocomplete="off"><span id="busy">choosing directions…</span></div>
+  <div id="top">
+    <details><summary>AI settings</summary>
+      <div class="pop"><div class="h first">OpenAI key (built-in if empty)</div><input id="key" type="password" placeholder="sk-...">
+      <div class="h first" style="margin-top:8px">Text model</div><input id="model" type="text" value="gpt-4o-mini">
+      <div class="h first" style="margin-top:8px">Image model</div><input id="imodel" type="text" value="gpt-image-1"></div>
+    </details>
+  </div>
+</div>
+<div id="panel">
+  <div class="w"><div class="wl">Weird</div><div class="wd"><div class="sl"><div class="top"><span></span><span class="v"></span></div><input type="range" data-k="weird" min="0" max="1" step="0.01"></div></div></div>
+  <div class="w"><div class="wl">Style</div><div class="wd"><div class="opts" id="techs"></div></div></div>
+  <div class="w"><div class="wl">Dots</div><div class="wd"><div class="opts" id="dots"></div>
+    <div class="sl" style="margin-top:8px"><div class="top"><span>Size</span><span class="v"></span></div><input type="range" data-k="cell" min="4" max="24" step="1"></div></div></div>
+  <div class="w"><div class="wl">Fuzz</div><div class="wd"><div class="sl"><div class="top"><span></span><span class="v"></span></div><input type="range" data-k="fuzz" min="0" max="1" step="0.01"></div></div></div>
+  <div class="w"><div class="wl">Color</div><div class="wd"><div id="pals"></div><div class="row2"><button id="invert" class="b">Invert</button><button id="shuffle" class="b">Shuffle</button></div></div></div>
+  <div class="w"><div class="wl">Text</div><div class="wd"><input id="text" type="text"></div></div>
+  <div class="w"><div class="wl">Type</div><div class="wd"><div class="opts" id="types"></div>
+    <div class="sl" style="margin-top:8px"><div class="top"><span>Size</span><span class="v"></span></div><input type="range" data-k="typeSize" min="0.3" max="2" step="0.01"></div></div></div>
+  <div class="w"><button id="del" class="wl">Delete</button></div>
+  <div class="w"><div class="wl">Save</div><div class="wd"><div class="row2"><button id="pngPage" class="b">Page PNG</button><button id="pngSel" class="b">Graphic PNG</button></div></div></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// ---------------------------------------------------------------- vocabulary
+const VW = 800, VH = 1000;   // virtual poster size, every canvas is drawn at this ratio
+const PALETTES = {
+  paper:  { bg: '#f3efe6', ink: '#111111', colors: ['#e8402a', '#2a5bd7', '#f2c230'] },
+  mono:   { bg: '#ffffff', ink: '#111111', colors: ['#111111', '#5a5a5a', '#bdbdbd'] },
+  night:  { bg: '#0d0f2b', ink: '#f5f0e6', colors: ['#ff5fa2', '#7b6cff', '#ffd23f'] },
+  pastel: { bg: '#fff6f0', ink: '#2b2b2b', colors: ['#ffb3c7', '#b6e3ff', '#c9f2c7', '#ffe29a'] },
+  acid:   { bg: '#e8ff3a', ink: '#111111', colors: ['#ff2bd6', '#111111', '#00c2ff'] },
+  forest: { bg: '#e9e4d0', ink: '#1f3a26', colors: ['#2f6b3a', '#9cc96b', '#c9772b'] },
+  sea:    { bg: '#e6f2ff', ink: '#0b2a4a', colors: ['#1e6bd6', '#3fc1c9', '#0b2a4a', '#ffffff'] },
+  red:    { bg: '#d9261c', ink: '#fff3e6', colors: ['#fff3e6', '#111111', '#ffb000'] },
+};
+const FORMS = { circle: 'Circle', square: 'Square', triangle: 'Triangle', line: 'Line', letter: 'Letter' };
+const LAYOUTS = { grid: 'Grid', radial: 'Radial', scatter: 'Scatter', stack: 'Stack', spiral: 'Spiral', wave: 'Wave' };
+const TYPES = { big: 'Big', center: 'Center', repeat: 'Pattern', scatter: 'Scattered', none: 'None' };
+const NUM = { weird: [0, 1], scale: [.2, 3], sizeVar: [0, 1], distort: [0, 1], rotate: [0, 1], count: [0, 200, 1], typeSize: [.3, 2], cell: [4, 24, 1], fuzz: [0, 1] };
+const DOTS = { square: 'Square', circle: 'Round' };
+const LABEL = { weird: 'Weird', scale: 'Scale', sizeVar: 'Size Mix', distort: 'Distort', rotate: 'Rotate', count: 'Count', typeSize: 'Type Size', cell: 'Dot Size', fuzz: 'Fuzz' };
+const EN = { circle: 'Circle', square: 'Square', triangle: 'Triangle', line: 'Line', letter: 'Letter',
+  grid: 'Grid', radial: 'Radial', scatter: 'Scatter', stack: 'Stack', spiral: 'Spiral', wave: 'Wave',
+  big: 'Big Type', center: 'Center Type', repeat: 'Type Pattern', none: 'No Type' };
+const KIND = { ai: '', edit: 'Edit', combo: 'Mix', mutant: 'Mutant' };
+const tagOf = it => `(${it.num}) ${it.kind === 'ai' ? (it.gene.mood === 'weird' ? 'Weird' : 'Normal') : KIND[it.kind]} ${it.kind === 'ai' ? it.gene.title : it.title}`;
+const BASE = { text: 'KEYWORD', bg: '#f3efe6', ink: '#111111', colors: PALETTES.paper.colors, form: 'circle', layout: 'grid',
+  count: 24, scale: 1, sizeVar: .1, distort: 0, rotate: 0, typeMode: 'big', typeSize: 1, blend: false, weird: 0, cell: 5, fuzz: .45, dot: 'square', tech: 'dots' };
+
+function rng(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const newSeed = () => (Math.random() * 1e9) | 0;
+const clone = g => JSON.parse(JSON.stringify(g));
+const isHex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v.trim());
+const hex2rgb = h => { const n = parseInt((isHex(h) ? h : '#888888').slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+
+// ---------------------------------------------------------------- renderer
+function eff(g) { // the weird dial pushes every other variable toward chaos
+  const w = g.weird;
+  return { ...g, sizeVar: clamp(g.sizeVar + w * .9, 0, 1.6), rotate: clamp(g.rotate + w, 0, 1.5), distort: clamp(g.distort + w * .8, 0, 1.4) };
+}
+
+function layoutPoints(g, R) {
+  const N = Math.max(1, Math.round(g.count)), m = 70, w = VW - 2 * m, h = VH - 2 * m - (g.typeMode === 'big' ? 160 : 0);
+  const cx = VW / 2, cy = m + h / 2, pts = [];
+  const base = Math.sqrt(w * h / N) * .62;
+  switch (g.layout) {
+    case 'grid': {
+      const cols = Math.max(1, Math.round(Math.sqrt(N * w / h))), rows = Math.ceil(N / cols), cw = w / cols, ch = h / rows;
+      for (let i = 0; i < N; i++) pts.push([m + (i % cols + .5) * cw, m + (Math.floor(i / cols) + .5) * ch, Math.min(cw, ch) * .8]);
+      break;
+    }
+    case 'radial': {
+      if (N === 1) { pts.push([cx, cy, Math.min(w, h) * .6]); break; }
+      let i = 0, ring = 0;
+      while (i < N) {
+        const r = ring * Math.min(w, h) * .11, k = ring === 0 ? 1 : Math.round(ring * 6.3);
+        for (let j = 0; j < k && i < N; j++, i++) { const a = j / k * Math.PI * 2 + ring * .4; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r, Math.min(w, h) * .09]); }
+        ring++;
+      }
+      break;
+    }
+    case 'stack':
+      for (let i = 0; i < N; i++) { const t = N === 1 ? .5 : i / (N - 1); pts.push([cx + (R() - .5) * w * .15, m + h * (.1 + .8 * t), Math.min(w * .7, h / N * 2.2)]); }
+      break;
+    case 'spiral':
+      for (let i = 0; i < N; i++) { const r = Math.sqrt((i + .5) / N) * Math.min(w, h) * .5, a = i * 2.39996; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r, Math.min(w, h) / Math.sqrt(N) * .75]); }
+      break;
+    case 'wave': {
+      const rows = Math.max(1, Math.round(Math.sqrt(N * h / w) * .7)), per = Math.ceil(N / rows);
+      for (let i = 0; i < N; i++) {
+        const r = Math.floor(i / per), j = i % per, x = m + (j + .5) / per * w;
+        pts.push([x, m + (r + .5) / rows * h + Math.sin(x / w * Math.PI * 3 + r) * h / rows * .45, Math.min(w / per, h / rows) * .95]);
+      }
+      break;
+    }
+    default: // scatter
+      for (let i = 0; i < N; i++) pts.push([m + R() * w, m + R() * h, base]);
+  }
+  return pts;
+}
+
+// unit radius of a form at angle a (polar outline)
+function formR(form, a) {
+  switch (form) {
+    case 'square': return .82 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a)));
+    case 'triangle': { const s = Math.PI * 2 / 3, t = ((a + Math.PI / 2) % s + s) % s - s / 2; return .55 / Math.cos(t); }
+    default: return 1;
+  }
+}
+
+function drawForm(c, g, it, R) {
+  const { x, y, s, rot, col } = it;
+  const form = g.form2 && it.i % 2 ? g.form2 : g.form;
+  c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = col;
+  if (form === 'letter') {
+    const chars = [...g.text.replace(/\s/g, '')] ; const ch = chars.length ? chars[it.i % chars.length] : '?';
+    c.font = `900 ${s * 1.1}px "Helvetica Neue", Arial, "Pretendard", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.scale(1 + g.distort * (it.n[0] - .5), 1 + g.distort * (it.n[1] - .5));
+    c.fillText(ch, 0, 0);
+  } else if (form === 'line') {
+    const len = s * 1.3, wv = g.distort;
+    c.strokeStyle = col; c.lineWidth = Math.max(2, s * .12); c.lineCap = 'round'; c.beginPath();
+    for (let i = 0; i <= 30; i++) { const t = i / 30 - .5; c.lineTo(t * len, Math.sin(t * 9 + it.n[0] * 6) * wv * s * .35); }
+    c.stroke();
+  } else {
+    const r = s / 2, dist = g.distort, N = 90;
+    c.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const a = i / N * Math.PI * 2;
+      const noise = .5 * Math.sin(2 * a + it.n[0] * 6.28) + .3 * Math.sin(3 * a + it.n[1] * 6.28) + .2 * Math.sin(5 * a + it.n[2] * 6.28);
+      const rr = r * formR(form, a) * (1 + dist * .45 * noise);
+      c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    c.closePath(); c.fill();
+  }
+  c.restore();
+}
+
+function fitFont(c, text, width, weight = 900) {
+  c.font = `${weight} 100px "Helvetica Neue", Arial, "Pretendard", sans-serif`;
+  return 100 * width / Math.max(1, c.measureText(text).width);
+}
+
+// ---------------------------------------------------------------- keyword pictures: what the keyword actually looks like
+// every motif has three plain compositions (the NORMAL ideas); WEIRD ideas twist a picture with mods
+const MOTIFS = {
+  mushroom: { re: /버섯|mushroom|fung|균사|곰팡|shroom|toadstool|morel|송이|표고/i, pal: { bg: '#e9e2d4', ink: '#2a1f14', colors: ['#c8321e', '#e8a33a', '#5f7a35', '#6b4528'] }, titles: ['One Mushroom', 'Forest Floor', 'Specimens'] },
+  sea:      { re: /바다|sea|ocean|파도|wave|water|beach|해변|수영|swim/i, pal: { bg: '#e6eef2', ink: '#0b2a4a', colors: ['#1d5f9e', '#3fc1c9', '#0b2a4a', '#f2b866'] }, titles: ['Horizon', 'Big Wave', 'Aerial Shore'] },
+  forest:   { re: /숲|forest|나무|tree|wood|자연|nature|정글|jungle|캠핑|camp/i, pal: { bg: '#eef2e4', ink: '#1f3a26', colors: ['#2f6b3a', '#9cc96b', '#8a5a2b', '#1f3a26'] }, titles: ['Treeline', 'One Tree', 'Canopy'] },
+  city:     { re: /도시|city|building|빌딩|건물|서울|seoul|town|street|거리|뉴욕|new york/i, pal: { bg: '#f1f1ee', ink: '#151515', colors: ['#151515', '#e8402a', '#2a5bd7', '#f2c230'] }, titles: ['Skyline', 'Tower', 'Blocks'] },
+  space:    { re: /우주|space|밤|night|별|star|달|moon|galaxy|은하|planet|행성|dream|꿈/i, pal: { bg: '#0d0f2b', ink: '#f5f0e6', colors: ['#ffd23f', '#7b6cff', '#ff5fa2', '#f5f0e6'] }, titles: ['Moonlight', 'Ringed Planet', 'Galaxy'] },
+  mountain: { re: /산|mountain|hill|언덕|등산|peak|알프스|alps|snow|눈/i, pal: { bg: '#f4f0e8', ink: '#20263a', colors: ['#3d5a80', '#98c1d9', '#20263a', '#ee6c4d'] }, titles: ['Ranges', 'Summit', 'Contours'] },
+  love:     { re: /사랑|love|하트|heart|연애|romance|kiss|친구|friend|우정/i, pal: { bg: '#fff0f3', ink: '#b0123a', colors: ['#e8262f', '#ff4c96', '#ffb3c7', '#b0123a'] }, titles: ['Big Heart', 'Heart Rain', 'Two of Us'] },
+  flower:   { re: /꽃|flower|봄|spring|garden|정원|blossom|벚꽃|plant|식물/i, pal: { bg: '#efe9df', ink: '#2b1d1f', colors: ['#d8506e', '#f0c348', '#4d7a3a', '#9c2440'] }, titles: ['One Bloom', 'Meadow', 'Close Up'] },
+  sun:      { re: /해|sun|summer|여름|태양|sunset|노을|hot|더위|휴가|vacation/i, pal: { bg: '#fff4dc', ink: '#5a1a00', colors: ['#ff8a1c', '#e8262f', '#ffcf2e', '#5a1a00'] }, titles: ['Sun Rays', 'Parasol', 'Sunset Bands'] },
+  rain:     { re: /비|rain|cloud|구름|날씨|weather|storm|폭풍|우산|umbrella/i, pal: { bg: '#eef1f4', ink: '#1d2b3a', colors: ['#3f6fa3', '#9fb4c7', '#1d2b3a', '#f2c230'] }, titles: ['Rain Cloud', 'Umbrella', 'Puddle'] },
+  cat:      { re: /고양이|cat|kitty|냥|animal|동물|pet|강아지|dog|puppy/i, pal: { bg: '#f7f1e6', ink: '#1b1b1b', colors: ['#1b1b1b', '#e8902a', '#7fc04a', '#e8402a'] }, titles: ['Cat Face', 'Sitting Cat', 'Paw Prints'] },
+  word:     { re: /$^/, pal: { bg: '#f3efe6', ink: '#111111', colors: ['#e8402a', '#2a5bd7', '#f2c230', '#111111'] }, titles: ['Big Word', 'Echo', 'Letter Boxes'] },
+};
+const motifOf = kw => Object.keys(MOTIFS).find(k => MOTIFS[k].re.test(kw)) || 'word';
+const IMGS = new Map();   // AI-painted pictures by id
+
+function heartShape(c, x, y, s) {
+  c.beginPath();
+  for (let i = 0; i <= 50; i++) { const b = i / 50 * Math.PI * 2; c.lineTo(x + 16 * Math.sin(b) ** 3 / 16 * s, y - (13 * Math.cos(b) - 5 * Math.cos(2 * b) - 2 * Math.cos(3 * b) - Math.cos(4 * b)) / 16 * s); }
+  c.closePath(); c.fill();
+}
+function circle(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+function tri(c, x1, y1, x2, y2, x3, y3) { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.lineTo(x3, y3); c.closePath(); c.fill(); }
+function waveLine(c, y, amp, freq, ph) { c.beginPath(); for (let x = -10; x <= VW + 10; x += 8) c.lineTo(x, y + Math.sin(x * freq + ph) * amp); c.stroke(); }
+function fitWord(c, s, w, weight = 900) { c.font = `${weight} 100px "Helvetica Neue", Arial, "Pretendard", sans-serif`; return 100 * w / Math.max(1, c.measureText(s).width); }
+
+// ---------------------------------------------------------------- the flower, drawn to look real: layered, shaded petals instead of flat circles
+const shade = (h, t) => { const m = t > 0 ? 255 : 0, k = Math.min(1, Math.abs(t)); return '#' + hex2rgb(h).map(v => Math.round(v + (m - v) * k).toString(16).padStart(2, '0')).join(''); };   // t > 0 toward white, t < 0 toward black (hex in, hex out)
+const tint = (h, a) => { const [r, g, b] = hex2rgb(h); return `rgba(${r},${g},${b},${a})`; };
+const PETAL_DETAIL_PX = 22;   // petals shorter than this on the canvas skip their curl shading and veins
+// one petal, base at the origin, tip up at (0, -len): a curved, ruffled blade shaded dark at the base, lit across its middle, with fine veins
+function petalShape(c, len, wid, ruffle) {
+  c.beginPath(); c.moveTo(0, 0);
+  c.bezierCurveTo(-wid * 1.1, -len * .28, -wid * 1.05, -len * .88, -wid * .35, -len * .98);
+  const n = 3; for (let i = 0; i < n; i++) { const x0 = -wid * .35 + wid * .7 * i / n, x1 = -wid * .35 + wid * .7 * (i + 1) / n; c.quadraticCurveTo((x0 + x1) / 2, -len * (1.03 + ruffle * (i % 2 ? -.03 : .03)), x1, -len * .98); }
+  c.bezierCurveTo(wid * 1.05, -len * .88, wid * 1.1, -len * .28, 0, 0); c.closePath();
+}
+function petal(c, len, wid, base, ruffle = .5, light = 0, shadow = true) {
+  c.save(); if (shadow) { c.shadowColor = 'rgba(40,12,20,.32)'; c.shadowBlur = len * .08; c.shadowOffsetY = len * .02; }
+  petalShape(c, len, wid, ruffle);
+  const g1 = c.createLinearGradient(0, 0, 0, -len);
+  g1.addColorStop(0, shade(base, -.5)); g1.addColorStop(.3, shade(base, -.12 + light)); g1.addColorStop(.75, shade(base, .28 + light)); g1.addColorStop(1, shade(base, .12 + light));
+  c.fillStyle = g1; c.fill(); c.restore();
+  const t = c.getTransform(); if (len * Math.hypot(t.a, t.b) < PETAL_DETAIL_PX) return;   // too small on screen for the curl and veins to show: skip them (the meadow has hundreds of these)
+  c.save(); petalShape(c, len, wid, ruffle); c.clip();
+  const g2 = c.createLinearGradient(-wid, 0, wid, 0);   // the petal's curl: dark edges, a soft highlight off-centre
+  g2.addColorStop(0, 'rgba(30,0,10,.28)'); g2.addColorStop(.42, 'rgba(255,255,255,.16)'); g2.addColorStop(.58, 'rgba(255,255,255,.06)'); g2.addColorStop(1, 'rgba(30,0,10,.3)');
+  c.fillStyle = g2; c.fillRect(-wid * 1.2, -len * 1.1, wid * 2.4, len * 1.2);
+  c.strokeStyle = tint('#3a0a18', .07); c.lineWidth = Math.max(.5, len * .004);
+  for (let i = -5; i <= 5; i++) { c.beginPath(); c.moveTo(0, -len * .04); c.bezierCurveTo(i * wid * .08, -len * .35, i * wid * .2 + wid * .05, -len * .65, i * wid * .19, -len * .93); c.stroke(); }
+  c.restore();
+}
+function leaf(c, x, y, len, ang, base) {
+  c.save(); c.translate(x, y); c.rotate(ang);
+  const wid = len * .3;
+  c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(wid, -len * .2, wid * .9, -len * .75, 0, -len); c.bezierCurveTo(-wid * .9, -len * .75, -wid, -len * .2, 0, 0);
+  const gl = c.createLinearGradient(-wid, 0, wid, 0); gl.addColorStop(0, shade(base, -.35)); gl.addColorStop(.5, shade(base, .1)); gl.addColorStop(1, shade(base, -.25));
+  c.shadowColor = 'rgba(0,20,0,.3)'; c.shadowBlur = len * .06; c.fillStyle = gl; c.fill(); c.shadowColor = 'transparent';
+  c.strokeStyle = tint('#e8f0d0', .35); c.lineWidth = len * .012; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(wid * .1, -len * .5, 0, -len * .97); c.stroke();
+  c.lineWidth = len * .006; for (let i = 1; i < 7; i++) { const t = i / 7; for (const s of [-1, 1]) { c.beginPath(); c.moveTo(0, -len * t * .95); c.quadraticCurveTo(s * wid * .45, -len * (t * .95 + .04), s * wid * .7, -len * (t * .95 + .1)); c.stroke(); } }
+  c.restore();
+}
+function stem(c, pts, w, base) {
+  c.save(); c.lineCap = 'round'; c.strokeStyle = shade(base, -.3); c.lineWidth = w; c.beginPath(); c.moveTo(...pts[0]); c.bezierCurveTo(...pts[1], ...pts[2], ...pts[3]); c.stroke();
+  c.strokeStyle = tint('#e8f0d0', .25); c.lineWidth = w * .3; c.beginPath(); c.moveTo(pts[0][0] - w * .2, pts[0][1]); c.bezierCurveTo(pts[1][0] - w * .2, pts[1][1], pts[2][0] - w * .2, pts[2][1], pts[3][0] - w * .2, pts[3][1]); c.stroke(); c.restore();
+}
+// a ring of petals: their drop shadows go onto one layer that is blurred once (a shadowBlur on every petal was the slow part), then the petals on top
+// ps: [rotation, y squash, length, width, ruffle] for each petal, drawn around the current origin
+function petalRing(c, ps, base, light) {
+  const lc = blurLayer(c), big = Math.max(...ps.map(p => p[2]));
+  lc.fillStyle = 'rgba(40,12,20,.32)';
+  ps.forEach(([rot, sy, len, wid, ruf]) => { lc.save(); lc.rotate(rot); lc.scale(1, sy); petalShape(lc, len, wid, ruf); lc.fill(); lc.restore(); });
+  // same size and drop as the old per-petal shadow (shadowBlur len*.08 ≈ a blur of half that, offset len*.02, both in canvas pixels)
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.filter = `blur(${big * .04}px)`; c.drawImage(BLUR_LAYER, 0, big * .02); c.restore();
+  ps.forEach(([rot, sy, len, wid, ruf]) => { c.save(); c.rotate(rot); c.scale(1, sy); petal(c, len, wid, base, ruf, light, false); c.restore(); });
+}
+// a full bloom (rose / peony): rings of petals, outer ones long and open, inner ones short and cupped, seen slightly from above
+function bloom(c, x, y, r0, base, R, tilt = .82) {
+  c.save(); c.translate(x, y); c.scale(1, tilt);
+  const rings = [[11, 1, .55], [9, .86, .52], [8, .7, .5], [7, .55, .48], [6, .4, .46], [5, .27, .44]];
+  rings.forEach(([n, k, w], L) => {
+    const off = R() * 6.28, ps = [];
+    for (let i = 0; i < n; i++) { const len = r0 * k * (.9 + R() * .2), rot = off + i / n * Math.PI * 2 + (R() - .5) * .25; ps.push([rot, 1 - L * .06, len, len * w, .5 + R() * .5]); }
+    petalRing(c, ps, shade(base, -.06 * L), L * .02);
+  });
+  const gc = c.createRadialGradient(0, 0, 0, 0, 0, r0 * .16); gc.addColorStop(0, shade(base, -.65)); gc.addColorStop(1, tint(base, 0));
+  c.fillStyle = gc; c.beginPath(); c.arc(0, 0, r0 * .16, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+// a daisy / cosmos for the meadow: one ring of long petals around a dotted disc
+function daisy(c, x, y, r0, base, disc, R, tilt, shadow = true) {
+  c.save(); c.translate(x, y); c.rotate((R() - .5) * .5); c.scale(1, tilt);
+  const n = 8 + (R() * 6 | 0), off = R() * 6.28, ps = [];
+  for (let i = 0; i < n; i++) ps.push([off + i / n * Math.PI * 2, 1, r0 * (.9 + R() * .15), r0 * .26, .7]);
+  if (shadow) petalRing(c, ps, base, .05);
+  else ps.forEach(([rot, , len, wid, ruf]) => { c.save(); c.rotate(rot); petal(c, len, wid, base, ruf, .05, false); c.restore(); });
+  const gd = c.createRadialGradient(-r0 * .05, -r0 * .05, 0, 0, 0, r0 * .26); gd.addColorStop(0, shade(disc, .3)); gd.addColorStop(1, shade(disc, -.4));
+  c.fillStyle = gd; c.beginPath(); c.arc(0, 0, r0 * .26, 0, Math.PI * 2); c.fill();
+  c.fillStyle = tint('#5a3a00', .45); for (let i = 0; i < 26; i++) { const a = i * 2.4, rr = Math.sqrt(i / 26) * r0 * .22; c.beginPath(); c.arc(Math.cos(a) * rr, Math.sin(a) * rr, r0 * .018, 0, Math.PI * 2); c.fill(); }
+  c.restore();
+}
+// blurred things are drawn sharp onto a spare layer, then the whole layer is blurred once (blurring each shape is far slower)
+const BLUR_LAYER = document.createElement('canvas');
+function blurLayer(c) { BLUR_LAYER.width = c.canvas.width; BLUR_LAYER.height = c.canvas.height; const lc = BLUR_LAYER.getContext('2d'); lc.setTransform(c.getTransform()); return lc; }
+function flushBlur(c, blur) { c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.filter = `blur(${blur}px)`; c.drawImage(BLUR_LAYER, 0, 0); c.restore(); }
+function bokeh(c, n, cols, R, blur) {
+  const lc = blurLayer(c);
+  for (let i = 0; i < n; i++) { lc.fillStyle = tint(cols[i % cols.length], .1 + R() * .18); lc.beginPath(); lc.arc(R() * VW, R() * VH, 30 + R() * 110, 0, Math.PI * 2); lc.fill(); }
+  flushBlur(c, blur);
+}
+function drawFlowerReal(c, v, g, R, col) {
+  const petalC = col(0), pollen = col(1), green = col(2), deep = col(3);
+  if (v === 0) {        // one bloom on its stem, leaves, a bud, soft garden blur behind
+    bokeh(c, 16, [green, petalC, shade(green, .4)], R, 22);
+    stem(c, [[430, 1010], [470, 820], [380, 640], [420, 470]], 16, green);
+    stem(c, [[300, 1010], [260, 860], [230, 720], [215, 600]], 9, green);
+    leaf(c, 440, 780, 230, .95, green); leaf(c, 405, 860, 200, -1.05, green); leaf(c, 255, 860, 150, -.7, green);
+    c.save(); c.translate(215, 600); c.rotate(-.25); for (let i = 0; i < 4; i++) { c.save(); c.rotate((i - 1.5) * .28); petal(c, 70, 26, deep, .3); c.restore(); } c.restore();   // a bud
+    bloom(c, 420, 420, 250, petalC, R, .8);
+  } else if (v === 1) { // meadow with depth: blurred far flowers, sharp near ones, grass between
+    const sky = c.createLinearGradient(0, 0, 0, VH); sky.addColorStop(0, shade(g.bg, .2)); sky.addColorStop(.45, shade(green, .55)); sky.addColorStop(1, shade(green, -.2));
+    c.fillStyle = sky; c.fillRect(0, 0, VW, VH);
+    bokeh(c, 12, [green, petalC, pollen], R, 26);
+    const layers = [[.48, 26, 10, 3], [.6, 16, 22, 1.6], [.74, 10, 40, .6], [.9, 6, 78, 0]];   // [y, count, size, blur]
+    layers.forEach(([yy, n, s, bl], L) => {
+      const lc = bl ? blurLayer(c) : c;   // far layers go on the blur layer; only the nearest flowers cast shadows
+      lc.save(); lc.lineCap = 'round';
+      for (let i = 0; i < 40 + L * 30; i++) { const x = R() * VW, y = VH * yy + R() * 90; lc.strokeStyle = shade(green, (R() - .5) * .6); lc.lineWidth = 1 + L * 1.2; lc.beginPath(); lc.moveTo(x, y + 120); lc.quadraticCurveTo(x + (R() - .5) * 40, y + 40, x + (R() - .5) * 60, y - 40 - L * 30); lc.stroke(); }
+      for (let i = 0; i < n; i++) { const x = R() * VW, y = VH * yy + R() * 80, cl = [petalC, '#f4efe6', shade(petalC, .45), deep][(R() * 4) | 0];
+        stem(lc, [[x, y + 200], [x + 4, y + 120], [x - 4, y + 60], [x, y]], 2 + L * 1.5, green); daisy(lc, x, y, s * (.8 + R() * .4), cl, pollen, R, .55 + R() * .35, !bl); }
+      lc.restore();
+      if (bl) flushBlur(c, bl);
+    });
+  } else {              // macro: the heart of one bloom, so close its petals leave the frame and the stamens fill the middle
+    const gb = c.createRadialGradient(400, 520, 0, 400, 520, 700); gb.addColorStop(0, shade(petalC, -.2)); gb.addColorStop(1, shade(deep, -.5));
+    c.fillStyle = gb; c.fillRect(0, 0, VW, VH);
+    bloom(c, 400, 520, 640, petalC, R, .95);
+    c.save(); c.translate(400, 520); c.lineCap = 'round';
+    for (let i = 0; i < 70; i++) { const a = R() * 6.28, rr = 40 + R() * 90, bx = Math.cos(a) * rr, by = Math.sin(a) * rr;
+      c.strokeStyle = tint('#fff2c0', .8); c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(bx * .4 + (R() - .5) * 20, by * .4, bx, by); c.stroke();
+      const ga = c.createRadialGradient(bx - 2, by - 2, 0, bx, by, 9); ga.addColorStop(0, shade(pollen, .5)); ga.addColorStop(1, shade(pollen, -.35));
+      c.fillStyle = ga; c.beginPath(); c.ellipse(bx, by, 8, 5, a, 0, Math.PI * 2); c.fill(); }
+    c.restore();
+  }
+  // a photographic finish: a soft vignette and a little film grain
+  const vg = c.createRadialGradient(VW / 2, VH / 2, VH * .35, VW / 2, VH / 2, VH * .78); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,10,10,.28)');
+  c.fillStyle = vg; c.fillRect(0, 0, VW, VH);
+  grain(c, R, 5000, 'rgba(0,0,0,.06)', 'rgba(255,255,255,.06)');
+}
+// film grain: specks gathered into one dark and one light path and filled twice (switching colour per speck was slow)
+function grain(c, R, n, dark, light) {
+  const a = new Path2D(), b = new Path2D();
+  for (let i = 0; i < n; i++) { const p = R() < .5 ? a : b; p.rect(R() * VW, R() * VH, 2, 2); }
+  c.fillStyle = dark; c.fill(a); c.fillStyle = light; c.fill(b);
+}
+// ---------------------------------------------------------------- mushrooms, drawn to look real: seven species with shaded caps, gills, stems, moss
+const MUSH_SPECIES = ['amanita', 'bolete', 'chanterelle', 'enoki', 'morel', 'shiitake', 'puffball'];
+function domeH(dx, w, h) { const t = 1 - (dx / (w / 2)) ** 2; return t > 0 ? h * Math.pow(t, .6) : 0; }   // height of a dome-shaped cap at dx from its centre
+function capPath(c, x, y, w, h, sag = .1) { c.beginPath(); c.moveTo(x - w / 2, y); c.bezierCurveTo(x - w / 2, y - h * 1.3, x + w / 2, y - h * 1.3, x + w / 2, y); c.quadraticCurveTo(x, y + w * sag, x - w / 2, y); c.closePath(); }
+function shadeFill(c, x, y, w, h, base, lift = .35, drop = -.45) { const gr = c.createRadialGradient(x - w * .22, y - h * .8, w * .05, x, y - h * .3, w * .7); gr.addColorStop(0, shade(base, lift)); gr.addColorStop(.55, base); gr.addColorStop(1, shade(base, drop)); c.fillStyle = gr; c.fill(); }   // lit from the top left
+function stemPath(c, x, y, wBot, wTop, h, bend = 0) { c.beginPath(); c.moveTo(x - wBot / 2, y); c.bezierCurveTo(x - wBot / 2 + bend * .3, y - h * .5, x - wTop / 2 + bend, y - h * .7, x - wTop / 2 + bend, y - h); c.lineTo(x + wTop / 2 + bend, y - h); c.bezierCurveTo(x + wTop / 2 + bend, y - h * .7, x + wBot / 2 + bend * .3, y - h * .5, x + wBot / 2, y); c.closePath(); }
+function stemFill(c, x, w, base) { const gr = c.createLinearGradient(x - w / 2, 0, x + w / 2, 0); gr.addColorStop(0, shade(base, -.35)); gr.addColorStop(.4, shade(base, .15)); gr.addColorStop(1, shade(base, -.25)); c.fillStyle = gr; c.fill(); }
+function gills(c, x, y, w, base) { c.save(); c.beginPath(); c.ellipse(x, y, w / 2, w * .09, 0, 0, Math.PI * 2); c.fillStyle = shade(base, -.15); c.fill(); c.clip(); c.strokeStyle = tint(shade(base, -.6), .5); c.lineWidth = Math.max(.6, w * .004); for (let i = -20; i <= 20; i++) { c.beginPath(); c.moveTo(x, y + w * .02); c.lineTo(x + i / 20 * w / 2, y + w * .018 * (i % 2 ? -1 : 1)); c.stroke(); } c.restore(); }
+function softShadow(c, x, y, w) { const gr = c.createRadialGradient(x, y, 0, x, y, w * .6); gr.addColorStop(0, 'rgba(0,0,0,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.beginPath(); c.ellipse(x, y, w * .6, w * .14, 0, 0, Math.PI * 2); c.fill(); }
+// one mushroom standing at (x, y) — y is where it meets the ground — about s wide
+function mushroom(c, type, x, y, s, R, col) {
+  c.save(); softShadow(c, x, y, s);
+  if (type === 'amanita') {          // fly agaric: red cap with white warts, ring, bulb at the base
+    const sh = s * .95, sw = s * .17, capY = y - sh;
+    c.fillStyle = shade('#efe6d2', -.05); c.beginPath(); c.ellipse(x, y - sw * .35, sw * .95, sw * .55, 0, 0, Math.PI * 2); c.fill();
+    stemPath(c, x, y - sw * .3, sw * 1.05, sw * .8, sh - sw * .3); stemFill(c, x, sw, '#efe6d2');
+    c.fillStyle = '#f3ecdc'; c.beginPath(); c.ellipse(x, capY + sh * .22, sw * .95, sw * .3, 0, 0, Math.PI * 2); c.fill();
+    gills(c, x, capY, s, '#f1e8d6');
+    capPath(c, x, capY, s, s * .42, .06); shadeFill(c, x, capY, s, s * .42, col(0));
+    for (let i = 0; i < 26; i++) { const dx = (R() - .5) * s * .85, hh = domeH(dx, s, s * .42); if (hh < s * .04) continue; const wy = capY - hh * (.15 + R() * .8), r = s * (.012 + R() * .022);
+      c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(x + dx + r * .3, wy + r * .4, r, r * .7, 0, 0, Math.PI * 2); c.fill(); c.fillStyle = '#f6f0e2'; c.beginPath(); c.ellipse(x + dx, wy, r, r * .7, 0, 0, Math.PI * 2); c.fill(); }
+  } else if (type === 'bolete') {    // porcini: thick netted stem, chestnut cap, spongy underside
+    const sh = s * .62, capY = y - sh;
+    c.beginPath(); c.moveTo(x - s * .22, y); c.bezierCurveTo(x - s * .3, y - sh * .4, x - s * .14, y - sh * .8, x - s * .13, capY); c.lineTo(x + s * .13, capY); c.bezierCurveTo(x + s * .14, y - sh * .8, x + s * .3, y - sh * .4, x + s * .22, y); c.closePath(); stemFill(c, x, s * .5, '#e3d2ae');
+    c.strokeStyle = 'rgba(120,90,50,.35)'; c.lineWidth = 1; for (let i = 0; i < 40; i++) { c.beginPath(); c.arc(x + (R() - .5) * s * .36, y - R() * sh, s * .015, 0, Math.PI * 2); c.stroke(); }
+    c.fillStyle = '#d8c070'; c.beginPath(); c.ellipse(x, capY, s / 2, s * .1, 0, 0, Math.PI * 2); c.fill();
+    capPath(c, x, capY, s * 1.05, s * .36, .08); shadeFill(c, x, capY, s, s * .36, col(3), .3, -.5);
+    c.fillStyle = 'rgba(255,255,255,.12)'; c.beginPath(); c.ellipse(x - s * .18, capY - s * .27, s * .16, s * .05, -.3, 0, Math.PI * 2); c.fill();
+  } else if (type === 'chanterelle') {   // golden funnel with ridges running down the stem
+    const H = s * .8, top = y - H, base = col(1);
+    c.beginPath(); c.moveTo(x - s * .08, y); c.bezierCurveTo(x - s * .1, y - H * .5, x - s * .45, top + s * .1, x - s * .5, top);
+    for (let i = 0; i <= 10; i++) { const t = i / 10; c.lineTo(x - s / 2 + s * t, top + Math.sin(t * 9 + R()) * s * .025); }
+    c.bezierCurveTo(x + s * .45, top + s * .1, x + s * .1, y - H * .5, x + s * .08, y); c.closePath(); stemFill(c, x, s * .6, base);
+    c.strokeStyle = tint(shade(base, -.45), .55); c.lineWidth = Math.max(.8, s * .006); for (let i = -9; i <= 9; i++) { c.beginPath(); c.moveTo(x + i / 9 * s * .47, top + s * .03); c.quadraticCurveTo(x + i / 9 * s * .2, y - H * .4, x + i / 9 * s * .04, y - H * .15); c.stroke(); }
+    c.fillStyle = shade(base, -.3); c.beginPath(); c.ellipse(x, top, s * .46, s * .07, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = shade(base, .15); c.beginPath(); c.ellipse(x, top - s * .01, s * .46, s * .04, 0, Math.PI, Math.PI * 2); c.fill();
+  } else if (type === 'enoki') {     // a fan of thin white stems with tiny caps
+    const n = 18 + (R() * 10 | 0); c.lineCap = 'round';
+    for (let i = 0; i < n; i++) { const a = (i / (n - 1) - .5) * 1.1 + (R() - .5) * .1, len = s * (.9 + R() * .5), tx = x + Math.sin(a) * len, ty = y - Math.cos(a) * len;
+      c.strokeStyle = shade('#efe8d6', -R() * .15); c.lineWidth = s * .025; c.beginPath(); c.moveTo(x + (R() - .5) * s * .1, y); c.quadraticCurveTo(x + Math.sin(a) * len * .4, y - Math.cos(a) * len * .5, tx, ty); c.stroke();
+      c.fillStyle = shade('#f2ead4', -R() * .1); c.beginPath(); c.ellipse(tx, ty, s * .05, s * .035, a, 0, Math.PI * 2); c.fill(); }
+    c.fillStyle = '#8a6a3a'; c.beginPath(); c.ellipse(x, y, s * .12, s * .05, 0, 0, Math.PI * 2); c.fill();
+  } else if (type === 'morel') {     // tall honeycomb cap on a pale stem
+    const sh = s * .35, capH = s * .95, cw = s * .5, capY = y - sh;
+    stemPath(c, x, y, s * .3, s * .26, sh + s * .05); stemFill(c, x, s * .3, '#eadfc8');
+    c.beginPath(); c.moveTo(x - cw / 2, capY); c.bezierCurveTo(x - cw * .62, capY - capH * .55, x - cw * .2, capY - capH, x, capY - capH); c.bezierCurveTo(x + cw * .2, capY - capH, x + cw * .62, capY - capH * .55, x + cw / 2, capY); c.closePath();
+    shadeFill(c, x, capY, cw, capH * .7, '#b78e5a'); c.clip();
+    for (let r = 0; r < 12; r++) for (let q = 0; q < 6; q++) { const px = x - cw / 2 + (q + (r % 2) * .5) * cw / 5, py = capY - capH + (r + .5) * capH / 11; c.fillStyle = shade('#4a2e16', R() * .2); c.beginPath(); c.ellipse(px + (R() - .5) * 4, py, cw * .07, capH * .035, (R() - .5) * .5, 0, Math.PI * 2); c.fill(); }
+  } else if (type === 'shiitake') {  // flat brown cap with pale cracks
+    const sh = s * .45, capY = y - sh;
+    stemPath(c, x, y, s * .12, s * .1, sh, s * .04); stemFill(c, x, s * .12, '#e8dcc4');
+    gills(c, x, capY, s * .95, '#efe4cc');
+    capPath(c, x, capY, s, s * .22, .04); shadeFill(c, x, capY, s, s * .22, '#6b4528', .25, -.4);
+    c.strokeStyle = 'rgba(240,228,205,.55)'; c.lineWidth = Math.max(.8, s * .006); for (let i = 0; i < 22; i++) { const dx = (R() - .5) * s * .8, py = capY - domeH(dx, s, s * .22) * (.3 + R() * .6); c.beginPath(); c.moveTo(x + dx, py); c.lineTo(x + dx + (R() - .5) * s * .06, py + (R() - .5) * s * .02); c.stroke(); }
+  } else {                           // puffball: a round white ball
+    const r = s * .38, cy = y - r * .95;
+    c.beginPath(); c.ellipse(x, cy, r, r * .92, 0, 0, Math.PI * 2); shadeFill(c, x, cy + r * .9, r * 2, r * 1.6, '#e9e2d0', .3, -.35);
+    c.fillStyle = 'rgba(150,130,100,.35)'; for (let i = 0; i < 60; i++) { const a = R() * 6.28, rr = Math.sqrt(R()) * r * .9; c.beginPath(); c.arc(x + Math.cos(a) * rr, cy + Math.sin(a) * rr * .92, s * .006, 0, Math.PI * 2); c.fill(); }
+  }
+  c.restore();
+}
+function mossGround(c, y, green, R) {   // a mossy bank with fallen leaves
+  const gr = c.createLinearGradient(0, y - 60, 0, VH); gr.addColorStop(0, shade(green, -.2)); gr.addColorStop(1, shade(green, -.6)); c.fillStyle = gr;
+  c.beginPath(); c.moveTo(0, VH); c.lineTo(0, y); for (let x = 0; x <= VW; x += 40) c.lineTo(x, y + Math.sin(x * .02 + R() * 2) * 18 - R() * 10); c.lineTo(VW, VH); c.closePath(); c.fill();
+  for (let i = 0; i < 900; i++) { c.fillStyle = shade(green, (R() - .4) * .6); c.fillRect(R() * VW, y + R() * (VH - y), 2 + R() * 3, 2 + R() * 3); }
+  for (let i = 0; i < 30; i++) { c.save(); c.translate(R() * VW, y + R() * (VH - y)); c.rotate(R() * 6.28); c.fillStyle = shade(['#7a4a22', '#9a6a2a', '#5a3a1a'][i % 3], (R() - .5) * .3); c.beginPath(); c.ellipse(0, 0, 18 + R() * 16, 7 + R() * 5, 0, 0, Math.PI * 2); c.fill(); c.restore(); }
+}
+// ---------------------------------------------------------------- the sea, drawn to look real
+function photoFinish(c, R, dark = .3) {   // vignette + film grain shared by the realistic pictures
+  const vg = c.createRadialGradient(VW / 2, VH / 2, VH * .35, VW / 2, VH / 2, VH * .78); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${dark})`); c.fillStyle = vg; c.fillRect(0, 0, VW, VH);
+  grain(c, R, 4000, 'rgba(0,0,0,.06)', 'rgba(255,255,255,.05)');
+}
+function drawSeaReal(c, v, g, R, col) {
+  const deep = col(0), teal = col(1), night = col(2), sun = col(3);
+  if (v === 0) {        // horizon at dusk: soft clouds, the sun's glow, ripples that shrink toward the horizon, a path of glitter
+    const H0 = 440, sx = 520;
+    const sky = c.createLinearGradient(0, 0, 0, H0); sky.addColorStop(0, shade(deep, -.25)); sky.addColorStop(.65, '#d9a98c'); sky.addColorStop(1, '#f6d8aa'); c.fillStyle = sky; c.fillRect(0, 0, VW, H0);
+    const glow = c.createRadialGradient(sx, H0 - 50, 0, sx, H0 - 50, 300); glow.addColorStop(0, 'rgba(255,236,190,.9)'); glow.addColorStop(.15, 'rgba(255,214,160,.45)'); glow.addColorStop(1, 'rgba(255,200,150,0)'); c.fillStyle = glow; c.fillRect(0, 0, VW, H0);
+    c.fillStyle = '#fff4dc'; circle(c, sx, H0 - 50, 30);
+    const cl = blurLayer(c); for (let i = 0; i < 14; i++) { cl.fillStyle = `rgba(255,${200 + R() * 40 | 0},${180 + R() * 40 | 0},${.25 + R() * .25})`; cl.beginPath(); cl.ellipse(R() * VW, 60 + R() * (H0 - 140), 80 + R() * 160, 10 + R() * 18, 0, 0, Math.PI * 2); cl.fill(); } flushBlur(c, 8);
+    const sea = c.createLinearGradient(0, H0, 0, VH); sea.addColorStop(0, '#6f7f95'); sea.addColorStop(.25, shade(deep, -.3)); sea.addColorStop(1, shade(night, -.2)); c.fillStyle = sea; c.fillRect(0, H0, VW, VH - H0);
+    c.fillStyle = 'rgba(255,230,200,.35)'; c.fillRect(0, H0, VW, 2);   // haze on the horizon line
+    for (let i = 0; i < 2600; i++) {   // ripples: crests catch the sky, troughs stay dark
+      const t = Math.pow(R(), 1.6), y = H0 + 3 + t * (VH - H0), len = 5 + t * 70, th = .6 + t * 3.2, x = R() * VW;
+      c.fillStyle = R() < .55 ? `rgba(255,226,196,${.08 + .22 * (1 - t)})` : `rgba(0,18,40,${.18 + .2 * t})`; c.fillRect(x - len / 2, y, len, th);
+    }
+    for (let i = 0; i < 1600; i++) {   // the sun's glitter path, widening toward the viewer
+      const t = Math.pow(R(), 1.2), y = H0 + 2 + t * (VH - H0), spread = (24 + t * 340) * (R() - .5) * (R() + .3), len = 3 + t * 34;
+      c.fillStyle = `rgba(255,${235 + R() * 20 | 0},${190 + R() * 50 | 0},${(.35 + .6 * R()) * (1 - Math.abs(spread) / (30 + t * 260))})`; c.fillRect(sx + spread - len / 2, y, len, .8 + t * 2.4);
+    }
+  } else if (v === 1) { // a big wave curling over: translucent lip, dark tube, spray
+    const sky = c.createLinearGradient(0, 0, 0, 600); sky.addColorStop(0, '#8fb3cf'); sky.addColorStop(1, '#e8eef0'); c.fillStyle = sky; c.fillRect(0, 0, VW, VH);
+    const far = c.createLinearGradient(0, 560, 0, VH); far.addColorStop(0, shade(deep, -.1)); far.addColorStop(1, shade(night, -.1)); c.fillStyle = far; c.fillRect(0, 560, VW, VH - 560);
+    // the face of the wave, rising from the left to the crest
+    c.beginPath(); c.moveTo(-20, VH); c.lineTo(-20, 800); c.bezierCurveTo(140, 740, 300, 400, 470, 270); c.bezierCurveTo(580, 200, 700, 250, 720, 340); c.lineTo(VW + 20, 420); c.lineTo(VW + 20, VH); c.closePath();
+    const face = c.createLinearGradient(0, 240, 0, VH); face.addColorStop(0, shade(teal, .35)); face.addColorStop(.25, teal); face.addColorStop(.6, shade(deep, -.15)); face.addColorStop(1, shade(night, -.25)); c.fillStyle = face; c.fill();
+    c.save(); c.clip(); c.strokeStyle = 'rgba(255,255,255,.08)'; c.lineWidth = 1.6; for (let i = 0; i < 70; i++) { const x0 = R() * 700; c.beginPath(); c.moveTo(x0, VH); c.quadraticCurveTo(x0 + 100 + R() * 60, 640, 470 + (R() - .5) * 180, 280 + R() * 60); c.stroke(); }   // water streaks up the face
+    const tube = c.createRadialGradient(610, 460, 10, 610, 460, 170); tube.addColorStop(0, 'rgba(0,18,36,.75)'); tube.addColorStop(1, 'rgba(0,18,36,0)'); c.fillStyle = tube; c.beginPath(); c.ellipse(610, 460, 130, 180, -.2, 0, Math.PI * 2); c.fill(); c.restore();   // shadow inside the tube
+    // the lip, falling over, lit from behind
+    c.beginPath(); c.moveTo(470, 270); c.bezierCurveTo(600, 200, 720, 260, 700, 390); c.bezierCurveTo(690, 470, 650, 540, 610, 560); c.bezierCurveTo(650, 470, 630, 360, 520, 310); c.closePath();
+    const lip = c.createLinearGradient(470, 230, 690, 520); lip.addColorStop(0, 'rgba(196,242,234,.95)'); lip.addColorStop(1, tint(teal, .65)); c.fillStyle = lip; c.fill();
+    const spray = blurLayer(c);
+    for (let i = 0; i < 240; i++) { const t = R(), x = 440 + t * 280 + (R() - .5) * 36, y = 262 - Math.sin(t * Math.PI) * 30 - R() * 50 + t * t * 140; spray.fillStyle = `rgba(255,255,255,${.2 + R() * .45})`; spray.beginPath(); spray.arc(x, y, 2 + R() * 11, 0, Math.PI * 2); spray.fill(); }   // spray off the crest
+    for (let i = 0; i < 260; i++) { const a = R() * Math.PI, rr = Math.sqrt(R()); spray.fillStyle = `rgba(255,255,255,${.15 + R() * .4})`; spray.beginPath(); spray.arc(600 + Math.cos(a) * rr * 200, 640 - Math.sin(a) * rr * 110 + R() * 60, 5 + R() * 22, 0, Math.PI * 2); spray.fill(); }   // a dome of whitewater where the lip lands
+    flushBlur(c, 3.5);
+    for (let i = 0; i < 380; i++) { c.fillStyle = `rgba(255,255,255,${.35 + R() * .5})`; c.beginPath(); c.arc(420 + R() * 380, 170 + R() * 560, R() * 2, 0, Math.PI * 2); c.fill(); }   // fine droplets
+  } else {              // aerial shore: sand, turquoise shallows with caustic light, lacy foam lines, deep water beyond
+    const sand = c.createLinearGradient(0, 0, VW * .4, 0); sand.addColorStop(0, '#eadbb8'); sand.addColorStop(1, '#d8c39a'); c.fillStyle = sand; c.fillRect(0, 0, VW, VH);
+    for (let i = 0; i < 3000; i++) { c.fillStyle = R() < .5 ? 'rgba(120,90,50,.12)' : 'rgba(255,255,255,.18)'; c.fillRect(R() * VW * .5, R() * VH, 2, 2); }
+    const shore = y => 260 + 80 * Math.sin(y * .006 + 1) + 30 * Math.sin(y * .021);
+    c.beginPath(); c.moveTo(VW, 0); for (let y = 0; y <= VH; y += 10) c.lineTo(shore(y) - 26, y); c.lineTo(VW, VH); c.closePath(); c.fillStyle = 'rgba(150,120,80,.35)'; c.fill();   // wet sand
+    c.beginPath(); c.moveTo(VW, 0); for (let y = 0; y <= VH; y += 10) c.lineTo(shore(y), y); c.lineTo(VW, VH); c.closePath();
+    const water = c.createLinearGradient(260, 0, VW, 0); water.addColorStop(0, 'rgba(140,230,220,.75)'); water.addColorStop(.3, tint(teal, .9)); water.addColorStop(.65, shade(deep, .05)); water.addColorStop(1, shade(night, .05)); c.fillStyle = water; c.fill();
+    c.save(); c.clip();
+    c.strokeStyle = 'rgba(255,255,255,.16)'; c.lineWidth = 1.4;   // caustics: soft rings of light packed into a net over the shallows
+    for (let i = 0; i < 260; i++) { const y = R() * VH, x = shore(y) + 20 + R() * 300, r = 8 + R() * 16; c.beginPath(); c.ellipse(x, y, r, r * (.6 + R() * .4), R() * 3, 0, Math.PI * 2); c.stroke(); }
+    c.restore();
+    const foam = blurLayer(c);   // lace foam along the shore, fading in bands further out
+    [[6, 1], [55, .8], [120, .55], [210, .35]].forEach(([off, a]) => { for (let y = 0; y < VH; y += 3) { const x = shore(y) + off + Math.sin(y * .05 + off) * 8; if (R() < .75) { foam.fillStyle = `rgba(255,255,255,${a * (.4 + R() * .6)})`; foam.beginPath(); foam.ellipse(x + (R() - .5) * 10, y, 3 + R() * 6, 2 + R() * 3, 0, 0, Math.PI * 2); foam.fill(); } } });
+    flushBlur(c, 1.2);
+  }
+  photoFinish(c, R, v === 2 ? .2 : .3);
+}
+function drawMushroomReal(c, v, g, R, col) {
+  const pick = () => MUSH_SPECIES[(R() * MUSH_SPECIES.length) | 0];   // each idea draws its own species
+  if (v === 0) {        // one mushroom close up, on moss in a dark wood, a smaller one behind
+    const bg = c.createLinearGradient(0, 0, 0, VH); bg.addColorStop(0, '#1d2418'); bg.addColorStop(1, '#2c2416'); c.fillStyle = bg; c.fillRect(0, 0, VW, VH);
+    bokeh(c, 14, [col(2), '#c9b27a', '#4a5a2a'], R, 26);
+    mossGround(c, 780, col(2), R);
+    const sp = pick(); mushroom(c, sp, 570, 830, 140, R, col); mushroom(c, sp, 390, 880, sp === 'enoki' ? 300 : 380, R, col);
+  } else if (v === 1) { // forest floor: many species at three depths, the far ones blurred
+    const bg = c.createLinearGradient(0, 0, 0, VH); bg.addColorStop(0, '#2a3320'); bg.addColorStop(1, '#1a160e'); c.fillStyle = bg; c.fillRect(0, 0, VW, VH);
+    bokeh(c, 12, ['#d8c890', col(2), '#6a7a3a'], R, 30);
+    [[560, 70, 3], [720, 130, 1.4], [900, 230, 0]].forEach(([gy, s, bl], L) => {
+      const lc = bl ? blurLayer(c) : c;
+      if (L === 0) mossGround(lc, gy - 40, col(2), R);
+      for (let i = 0, n = [9, 6, 4][L]; i < n; i++) mushroom(lc, pick(), 60 + R() * (VW - 120), gy + R() * 40, s * (.7 + R() * .6), R, col);
+      if (bl) flushBlur(c, bl);
+      if (L === 1) mossGround(c, 860, col(2), R);
+    });
+  } else {              // specimens: different species laid out on near black, like a field-guide plate
+    c.fillStyle = '#121110'; c.fillRect(0, 0, VW, VH);
+    const off = R() * 7 | 0;
+    [[160, 230], [400, 200], [640, 240], [140, 500], [400, 470], [660, 520], [170, 780], [410, 760], [650, 800]].forEach(([cx, cy], i) => mushroom(c, MUSH_SPECIES[(i + off) % MUSH_SPECIES.length], cx + (R() - .5) * 30, cy + 90, 120 + R() * 50, R, col));
+  }
+  // a photographic finish, as for the flower
+  const vg = c.createRadialGradient(VW / 2, VH / 2, VH * .35, VW / 2, VH / 2, VH * .78); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.35)'); c.fillStyle = vg; c.fillRect(0, 0, VW, VH);
+  grain(c, R, 4000, 'rgba(0,0,0,.07)', 'rgba(255,255,255,.05)');
+}
+function drawMotif(c, m, v, g, R) {
+  const col = i => g.colors[i % g.colors.length] || g.ink, ink = g.ink;
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  switch (m) {
+    case 'sea':
+      drawSeaReal(c, v, g, R, col);
+      break;
+    case 'forest':
+      if (v === 0) {        // rows of pines, back to front
+        c.fillStyle = col(2); c.fillRect(0, 820, VW, VH);
+        for (let r = 0; r < 3; r++) { c.fillStyle = r === 0 ? col(1) : r === 1 ? col(0) : col(3); const h = 230 + r * 70, wd = 120 + r * 25, base = 560 + r * 140;
+          for (let x = -40 + r * 40; x < VW + 60; x += wd * .85) tri(c, x, base - h, x - wd / 2, base, x + wd / 2, base); }
+      } else if (v === 1) { // one tree
+        c.fillStyle = col(2); c.fillRect(368, 560, 64, 360); c.fillRect(0, 900, VW, 100);
+        c.fillStyle = col(0); for (let k = 0; k < 4; k++) tri(c, 400, 120 + k * 110, 400 - (150 + k * 40), 360 + k * 90, 400 + (150 + k * 40), 360 + k * 90);
+      } else {              // canopy: crowns from below
+        for (let i = 0; i < 70; i++) { c.fillStyle = col(i % 2); circle(c, R() * VW, R() * 720, 60 + R() * 90); }
+        c.fillStyle = col(2); for (let i = 0; i < 6; i++) c.fillRect(60 + i * 135, 600, 26, 400);
+      }
+      break;
+    case 'city':
+      if (v === 0) {        // skyline
+        let x = 0; while (x < VW) { const w = 70 + R() * 90, h = 250 + R() * 520; c.fillStyle = col(Math.floor(R() * 4)); c.fillRect(x, VH - h, w - 8, h);
+          c.fillStyle = g.bg; for (let wy = VH - h + 24; wy < VH - 30; wy += 38) for (let wx = x + 12; wx < x + w - 26; wx += 24) if (R() < .7) c.fillRect(wx, wy, 10, 16); x += w; }
+      } else if (v === 1) { // one tower, close
+        c.fillStyle = col(0); c.fillRect(250, 140, 300, 900); c.fillRect(395, 40, 10, 110);
+        c.fillStyle = col(3); for (let wy = 180; wy < VH; wy += 54) for (let wx = 278; wx < 530; wx += 46) if (R() < .75) c.fillRect(wx, wy, 26, 32);
+      } else {              // blocks seen from above
+        for (let y = 20; y < VH; y += 170) for (let x = 20; x < VW; x += 190) { c.fillStyle = col(Math.floor(R() * 4)); c.fillRect(x, y, 150 + R() * 20, 130 + R() * 20); }
+      }
+      break;
+    case 'space':
+      c.fillStyle = col(3); for (let i = 0; i < 140; i++) circle(c, R() * VW, R() * VH, R() * 3 + 1);
+      if (v === 0) { c.fillStyle = col(0); circle(c, 470, 380, 170); c.fillStyle = g.bg; circle(c, 545, 330, 160); }
+      else if (v === 1) {
+        c.strokeStyle = col(0); c.lineWidth = 18; c.beginPath(); c.ellipse(400, 500, 320, 80, -.3, Math.PI, Math.PI * 2); c.stroke();
+        c.fillStyle = col(1); circle(c, 400, 500, 190);
+        c.beginPath(); c.ellipse(400, 500, 320, 80, -.3, 0, Math.PI); c.stroke();
+      } else { for (let i = 0; i < 1100; i++) { const a = i * .11, r = i * .33; c.fillStyle = col(i % 3); circle(c, 400 + Math.cos(a) * r, 500 + Math.sin(a) * r * .8, 3 + R() * 6); } }
+      break;
+    case 'mountain':
+      if (v === 0) { for (let k = 0; k < 4; k++) { c.fillStyle = col(3 - k === 3 ? 1 : k); c.beginPath(); c.moveTo(0, VH); let y = 380 + k * 140;
+          for (let x = 0; x <= VW; x += 80) c.lineTo(x, y + (R() - .5) * 200 * (1 - k * .15)); c.lineTo(VW, VH); c.closePath(); c.fill(); } }
+      else if (v === 1) { c.fillStyle = col(3); circle(c, 640, 220, 70); c.fillStyle = col(0); tri(c, 400, 200, -60, VH, 860, VH); c.fillStyle = '#ffffff'; tri(c, 400, 200, 320, 380, 480, 380); }
+      else { c.strokeStyle = col(0); c.lineWidth = 6; for (let r = 30; r < 600; r += 34) { c.beginPath(); for (let i = 0; i <= 80; i++) { const a = i / 80 * Math.PI * 2, rr = r * (1 + .18 * Math.sin(a * 3 + r * .01) + .08 * Math.sin(a * 5)); c.lineTo(400 + Math.cos(a) * rr, 500 + Math.sin(a) * rr * 1.1); } c.closePath(); c.stroke(); } }
+      break;
+    case 'love':
+      if (v === 0) { c.fillStyle = col(0); heartShape(c, 400, 470, 300); }
+      else if (v === 1) { for (let i = 0; i < 45; i++) { c.fillStyle = col(i % 3); heartShape(c, R() * VW, R() * VH, 30 + R() * 80); } }
+      else { c.globalAlpha = .9; c.fillStyle = col(0); circle(c, 320, 560, 210); c.fillStyle = col(1); circle(c, 480, 560, 210); c.globalAlpha = 1; c.fillStyle = col(3); heartShape(c, 400, 230, 80); }
+      break;
+    case 'flower':
+      drawFlowerReal(c, v, g, R, col);
+      break;
+    case 'mushroom':
+      drawMushroomReal(c, v, g, R, col);
+      break;
+    case 'sun':
+      if (v === 0) { c.fillStyle = col(1); for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, b = a + .1; tri(c, 400, 450, 400 + Math.cos(a) * 520, 450 + Math.sin(a) * 520, 400 + Math.cos(b) * 520, 450 + Math.sin(b) * 520); } c.fillStyle = col(0); circle(c, 400, 450, 170); }
+      else if (v === 1) {
+        c.fillStyle = col(2); c.fillRect(0, 760, VW, VH); c.strokeStyle = ink; c.lineWidth = 12; c.beginPath(); c.moveTo(400, 300); c.lineTo(440, 900); c.stroke();
+        for (let k = 0; k < 6; k++) { c.fillStyle = col(k % 2); c.beginPath(); c.moveTo(400, 300); c.arc(400, 330, 320, Math.PI + k * Math.PI / 6, Math.PI + (k + 1) * Math.PI / 6); c.closePath(); c.fill(); }
+      } else {
+        let y = 0; for (let k = 0; k < 9; k++) { const h = 160 - k * 14; c.fillStyle = col(k % 3); c.fillRect(0, y, VW, h + 1); y += h; }
+        c.fillStyle = col(3); c.beginPath(); c.arc(400, y, 200, Math.PI, 0); c.fill(); c.fillStyle = col(0); c.fillRect(0, y, VW, VH);
+      }
+      break;
+    case 'rain':
+      c.strokeStyle = col(0); c.lineWidth = 5;
+      const drops = n => { for (let i = 0; i < n; i++) { const x = R() * VW, y = R() * VH; c.beginPath(); c.moveTo(x, y); c.lineTo(x - 14, y + 48); c.stroke(); } };
+      if (v === 0) { drops(110); c.fillStyle = col(1); [[220, 260, 140], [380, 200, 170], [560, 270, 140], [300, 330, 120], [480, 330, 130]].forEach(([x, y, r]) => circle(c, x, y, r)); }
+      else if (v === 1) { drops(120); c.fillStyle = col(3); c.beginPath(); c.arc(400, 480, 300, Math.PI, 0); c.closePath(); c.fill(); c.strokeStyle = ink; c.lineWidth = 14; c.beginPath(); c.moveTo(400, 480); c.lineTo(400, 860); c.arc(360, 860, 40, 0, Math.PI); c.stroke(); }
+      else { c.lineWidth = 6; for (let k = 0; k < 5; k++) { const x = 160 + R() * 480, y = 300 + R() * 500; for (let r = 20; r < 200; r += 30) { c.beginPath(); c.ellipse(x, y, r, r * .32, 0, 0, Math.PI * 2); c.stroke(); } } c.lineWidth = 5; drops(40); }
+      break;
+    case 'cat':
+      if (v === 0) {
+        c.fillStyle = col(0); tri(c, 210, 220, 190, 470, 380, 360); tri(c, 590, 220, 610, 470, 420, 360); circle(c, 400, 540, 260);
+        c.fillStyle = col(2); c.beginPath(); c.ellipse(310, 510, 48, 62, 0, 0, Math.PI * 2); c.ellipse(490, 510, 48, 62, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = ink === col(0) ? g.bg : ink; c.beginPath(); c.ellipse(310, 510, 14, 50, 0, 0, Math.PI * 2); c.ellipse(490, 510, 14, 50, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = col(3); tri(c, 380, 610, 420, 610, 400, 640);
+      } else if (v === 1) {
+        c.fillStyle = col(0); c.beginPath(); c.ellipse(400, 720, 210, 250, 0, 0, Math.PI * 2); c.fill(); circle(c, 400, 400, 150);
+        tri(c, 290, 230, 280, 380, 380, 310); tri(c, 510, 230, 520, 380, 420, 310);
+        c.strokeStyle = col(0); c.lineWidth = 42; c.beginPath(); c.moveTo(580, 900); c.quadraticCurveTo(760, 860, 700, 640); c.stroke();
+      } else { for (let i = 0; i < 9; i++) { const x = 140 + (i % 3) * 260 + (R() - .5) * 60, y = 180 + Math.floor(i / 3) * 300 + (R() - .5) * 60; c.save(); c.translate(x, y); c.rotate((R() - .5) * 1.2); c.fillStyle = col(i % 2);
+          c.beginPath(); c.ellipse(0, 30, 58, 48, 0, 0, Math.PI * 2); c.fill(); [[-58, -34], [-20, -62], [20, -62], [58, -34]].forEach(([a, b]) => { c.beginPath(); c.ellipse(a, b, 20, 26, 0, 0, Math.PI * 2); c.fill(); }); c.restore(); } }
+      break;
+    default: {           // a keyword with no picture of its own: the word becomes the picture
+      const s = g.text.trim() || 'IDEA';
+      c.textBaseline = 'middle'; c.textAlign = 'center';
+      if (v === 0) { const fs = Math.min(fitWord(c, s, VW * .9), 420); c.fillStyle = col(3); c.font = `900 ${fs}px "Helvetica Neue", Arial, "Pretendard", sans-serif`; c.fillText(s, 400, 500); }
+      else if (v === 1) { for (let k = 0; k < 9; k++) { const fs = Math.min(fitWord(c, s, VW * (1 - k * .08)), 300) * (1 - k * .05); c.fillStyle = col(k % 3); c.globalAlpha = 1 - k * .08; c.font = `900 ${fs}px "Helvetica Neue", Arial, "Pretendard", sans-serif`; c.fillText(s, 400, 120 + k * 100); } c.globalAlpha = 1; }
+      else { const ch = [...s.replace(/\s/g, '')], n = Math.ceil(Math.sqrt(ch.length * 1.25)), cs = Math.min(VW / n, VH / Math.ceil(ch.length / n)) * .92;
+        ch.forEach((l, i) => { const x = (i % n + .5) * VW / n, y = (Math.floor(i / n) + .5) * cs + (VH - Math.ceil(ch.length / n) * cs) / 2; c.fillStyle = col(i % 3); c.fillRect(x - cs * .45, y - cs * .45, cs * .9, cs * .9); c.fillStyle = g.bg; c.font = `900 ${cs * .62}px "Helvetica Neue", Arial, "Pretendard", sans-serif`; c.fillText(l, x, y + cs * .04); }); }
+      c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+    }
+  }
+}
+
+// a picture (AI painting or motif) drawn into its own layer, then put on the poster with the weird mods
+const SCENE = document.createElement('canvas'); SCENE.width = VW / 2; SCENE.height = VH / 2;
+const MASK = document.createElement('canvas'); MASK.width = VW / 2; MASK.height = VH / 2;
+// the realistic pictures (flower, mushroom) are costly to draw, so each one is painted once into its own layer and reused:
+// editing an idea only changes how it is printed, not the picture underneath
+const PIC_CACHE = new Map(), PIC_CACHE_MAX = 40, CACHED_MOTIFS = ['flower', 'mushroom', 'sea'];
+function cachedPicture(sx, g, motif, variant, seed) {
+  const key = [motif, variant, g.bg, g.colors.join(), seed].join('|');
+  let cv = PIC_CACHE.get(key);
+  if (!cv) {
+    cv = document.createElement('canvas'); cv.width = VW / 2; cv.height = VH / 2;
+    const c = cv.getContext('2d'); c.setTransform(.5, 0, 0, .5, 0, 0);
+    drawMotif(c, motif, variant, g, rng(seed ^ 0x51f15e));
+    PIC_CACHE.set(key, cv); if (PIC_CACHE.size > PIC_CACHE_MAX) PIC_CACHE.delete(PIC_CACHE.keys().next().value);
+  }
+  sx.drawImage(cv, 0, 0, VW, VH);
+}
+function paintPicture(sx, g, R, img, motif, variant, seed) {
+  if (img && IMGS.get(img)) { const im = IMGS.get(img), k = Math.max(VW / im.width, VH / im.height); sx.drawImage(im, (VW - im.width * k) / 2, (VH - im.height * k) / 2, im.width * k, im.height * k); }
+  else if (CACHED_MOTIFS.includes(motif)) cachedPicture(sx, g, motif, variant || 0, seed);
+  else if (motif) drawMotif(sx, motif, variant || 0, g, R);
+}
+function drawScene(c, g, seed) {
+  if (!g.motif && !g.img) return;
+  const R = rng(seed ^ 0x9e3779b9), mods = g.mods || {}, sx = SCENE.getContext('2d');
+  sx.setTransform(.5, 0, 0, .5, 0, 0); sx.globalAlpha = 1; sx.globalCompositeOperation = 'source-over';
+  sx.fillStyle = g.bg; sx.fillRect(0, 0, VW, VH);
+  paintPicture(sx, g, R, g.img, g.motif, g.variant, seed);
+  if (g.mash || g.img2) { sx.globalAlpha = .55; paintPicture(sx, g, R, g.img2, g.mash, g.mashV, seed ^ 0x2545f491); sx.globalAlpha = 1; }   // a second picture showing through (mixes)
+  let src = SCENE;
+  if (mods.inText) {   // the picture only shows through its own word
+    const mx = MASK.getContext('2d'), s = (g.text.trim() || 'IDEA').split(/\s+/);
+    mx.setTransform(.5, 0, 0, .5, 0, 0); mx.globalCompositeOperation = 'source-over'; mx.clearRect(0, 0, VW, VH); mx.fillStyle = '#000';
+    const lh = VH / s.length; mx.textAlign = 'center'; mx.textBaseline = 'middle';
+    s.forEach((wd, i) => { mx.font = `900 ${Math.min(fitWord(mx, wd, VW * .96), lh * 1.05)}px "Helvetica Neue", Arial, "Pretendard", sans-serif`; mx.fillText(wd, 400, lh * (i + .5)); });
+    mx.globalCompositeOperation = 'source-in'; mx.setTransform(1, 0, 0, 1, 0, 0); mx.drawImage(SCENE, 0, 0); mx.globalCompositeOperation = 'source-over';
+    src = MASK;
+  }
+  c.save();
+  if (mods.flip) { c.translate(0, VH); c.scale(1, -1); }
+  if (mods.zoom > 1) { const z = mods.zoom; c.translate(VW / 2, VH / 2); c.scale(z, z); c.translate(-VW * (.3 + R() * .4), -VH * (.3 + R() * .4)); }
+  const melt = (mods.melt || 0) + Math.max(0, g.weird - .35) * .7;
+  if (mods.tile > 1) { const n = mods.tile; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) c.drawImage(src, i * VW / n, j * VH / n, VW / n, VH / n); }
+  else if (melt > .02) { const ph = R() * 6; for (let x = 0; x < VW; x += 8) { const dy = (Math.sin(x * .013 + ph) * .5 + .5) * melt * 260 + Math.sin(x * .05) * melt * 20; c.drawImage(src, x / 2, 0, 4, VH / 2, x, dy, 8.5, VH); } }
+  else c.drawImage(src, 0, 0, VW, VH);
+  c.restore();
+}
+
+function renderPoster(c, gene, seed) {
+  const g = eff(gene), R = rng(seed), m = 70, w = g.weird;
+  c.fillStyle = g.bg; c.fillRect(0, 0, VW, VH);
+  drawScene(c, g, seed);   // the keyword's picture first, forms and type go on top
+  const txt = g.text.trim() || ' ';
+  const flip = w > .65;
+
+  if (g.typeMode === 'repeat') {
+    const fs = 60 * g.typeSize; c.font = `900 ${fs}px "Helvetica Neue", Arial, "Pretendard", sans-serif`; c.fillStyle = g.ink; c.globalAlpha = .9;
+    c.textBaseline = 'top'; c.textAlign = 'left';
+    for (let y = -fs * .2, row = 0; y < VH; y += fs * .95, row++) {
+      let line = ''; while (c.measureText(line).width < VW * 1.5) line += txt + ' ';
+      c.fillText(line, -((row * 97) % 300) * g.typeSize, y);
+    }
+    c.globalAlpha = 1;
+  }
+
+  const pts = g.count > 0 ? layoutPoints(g, R) : [];
+  const cols = g.colors.length ? g.colors : [g.ink];
+  const items = pts.map(([x, y, s0], i) => {
+    let s = s0 * g.scale * Math.max(.15, 1 + (R() - .5) * g.sizeVar * 1.6);
+    if (R() < w * .12) s *= 2 + R() * 2.5;                       // weird: random giants
+    const jx = (R() - .5) * w * 120, jy = (R() - .5) * w * 120;
+    return { i, x: x + jx, y: y + jy, s, rot: (R() - .5) * Math.PI * 2 * g.rotate, col: cols[(i + Math.floor(R() * (1 + w * 3))) % cols.length], n: [R(), R(), R()] };
+  });
+  c.save(); if (g.blend) c.globalCompositeOperation = isDark(g.bg) ? 'screen' : 'multiply';
+  items.forEach(it => drawForm(c, g, it, R));
+  c.restore();
+
+  c.fillStyle = g.ink; c.textAlign = 'left';
+  if (g.typeMode === 'big' || g.typeMode === 'center') {
+    const fs = Math.min(fitFont(c, txt, VW - 2 * m), g.typeMode === 'big' ? 190 : 300) * g.typeSize;
+    c.font = `900 ${fs}px "Helvetica Neue", Arial, "Pretendard", sans-serif`;
+    c.save();
+    if (g.typeMode === 'big') { c.textBaseline = 'alphabetic'; c.translate(m, VH - m); }
+    else { c.textBaseline = 'middle'; c.translate(VW / 2 - c.measureText(txt).width / 2, VH / 2); }
+    if (flip) { c.translate(0, g.typeMode === 'big' ? -fs * .72 : 0); c.scale(1, -1); }
+    c.fillText(txt, 0, 0); c.restore();
+  } else if (g.typeMode === 'scatter') {
+    const chars = [...txt.replace(/\s/g, '')];
+    chars.forEach((ch, i) => {
+      const fs = (90 + R() * 160 * (1 + g.sizeVar)) * g.typeSize;
+      c.save(); c.translate(m + R() * (VW - 2 * m), m + 60 + R() * (VH - 2 * m - 60)); c.rotate((R() - .5) * (1 + g.rotate * 3));
+      c.font = `900 ${fs}px "Helvetica Neue", Arial, "Pretendard", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(ch, 0, 0); c.restore();
+    });
+  }
+}
+function isDark(h) { const n = parseInt(h.slice(1), 16); return ((n >> 16) * .3 + (n >> 8 & 255) * .59 + (n & 255) * .11) < 110; }
+
+// dot screen: the vector poster is only the hidden source. It is blurred (Fuzz), sampled on a grid (Dot Size)
+// and re-printed as dots on pale paper — solid areas fill in, edges break up through an ordered dither + loose speckle.
+const SRC = document.createElement('canvas'); SRC.width = VW / 2; SRC.height = VH / 2;
+const SMALL = document.createElement('canvas');
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+// every idea is re-printed with one technique (gene.tech); the vector poster drawn into SRC is only the source.
+// Size (cell) and Fuzz are shared by all of them as "grain" and "softness".
+const TECHS = { dots: 'Dots', frost: 'Frost', stretch: 'Stretch', typefill: 'Type Fill', points: 'Points', tracking: 'Tracking', blocks: 'Blocks', smear: 'Smear', glow: 'Glow' };
+const WEIRD_TECHS = ['smear', 'glow'];   // the WEIRD ideas reach for these first
+const MONO = '"IBM Plex Mono", monospace';
+const TAGS = ['MACRO', 'LATERAL', 'DORSAL', 'VIVID', 'TEXTURE', 'CONTRAST', 'SCALE', 'EDGE', 'TONE', 'SURFACE', 'FIELD', 'SIGNAL'];
+function renderGraphic(c, gene, seed) {
+  const g = eff(gene), sx = SRC.getContext('2d', { willReadFrequently: true });
+  sx.setTransform(.5, 0, 0, .5, 0, 0); renderPoster(sx, gene, seed);
+  (TECH_FN[g.tech] || techDots)(c, g, seed);
+}
+// helpers shared by the techniques (SRC is half the poster size: poster unit u = SRC pixel u / 2)
+const canvasScale = c => c.getTransform().a;   // canvas pixels per poster unit — filters like blur work in canvas pixels
+const srcData = () => SRC.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, SRC.width, SRC.height).data;
+const srcIdx = (x, y) => (clamp(y | 0, 0, SRC.height - 1) * SRC.width + clamp(x | 0, 0, SRC.width - 1)) * 4;
+const coverAt = (d, x, y, b) => { const i = srcIdx(x, y); return clamp(Math.hypot(d[i] - b[0], d[i + 1] - b[1], d[i + 2] - b[2]) / 170, 0, 1); };   // 0 = background, 1 = picture
+const lumAt = (d, x, y) => { const i = srcIdx(x, y); return d[i] * .3 + d[i + 1] * .59 + d[i + 2] * .11; };
+const edgeAt = (d, x, y) => Math.hypot(lumAt(d, x + 1, y) - lumAt(d, x - 1, y), lumAt(d, x, y + 1) - lumAt(d, x, y - 1)) / 255;
+function paperOf(g) { const [r, gg, b] = hex2rgb(g.bg).map(v => Math.round(244 + (v - 244) * .1)); return `rgb(${r},${gg},${b})`; }   // near white with a hint of the idea's background
+function pushed(d, i, b, cov) {   // a source colour pushed back to full strength (blur and sampling grey it toward the paper)
+  const k = 1 / Math.max(cov, .4);
+  return `rgb(${clamp(b[0] + (d[i] - b[0]) * k, 0, 255) | 0},${clamp(b[1] + (d[i + 1] - b[1]) * k, 0, 255) | 0},${clamp(b[2] + (d[i + 2] - b[2]) * k, 0, 255) | 0})`;
+}
+
+// frosted glass: the picture seen through a misted pane, sharp only where it presses against the glass
+function techFrost(c, g, seed) {
+  const R = rng(seed ^ 0x2f1), k = canvasScale(c), d = srcData(), b = hex2rgb(g.bg);
+  c.fillStyle = paperOf(g); c.fillRect(0, 0, VW, VH);
+  c.save(); c.filter = `blur(${(14 + 26 * g.fuzz) * k}px) contrast(1.35) brightness(1.05)`; c.drawImage(SRC, 0, 0, VW, VH); c.restore();
+  for (let t = 0, n = 0; t < 600 && n < 2 + (R() * 3 | 0); t++) {
+    const x = R() * SRC.width, y = R() * SRC.height; if (coverAt(d, x, y, b) < .6) continue;
+    const r = 26 + R() * 46;
+    c.save(); c.beginPath(); c.ellipse(x * 2, y * 2, r, r * (.7 + R() * .6), R() * 3, 0, Math.PI * 2); c.clip();
+    c.filter = `blur(${1.5 * k}px)`; c.drawImage(SRC, 0, 0, VW, VH); c.restore(); n++;
+  }
+  c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(0, 0, VW, VH);
+}
+
+// slit-scan boxes: the picture cut into a staircase of boxes; some boxes smear one row or column of pixels across, each box ruled and tagged
+function techStretch(c, g, seed) {
+  const R = rng(seed ^ 0x51a), k = canvasScale(c), d = srcData(), b = hex2rgb(g.bg), boxes = [];
+  c.fillStyle = paperOf(g); c.fillRect(0, 0, VW, VH); c.drawImage(SRC, 0, 0, VW, VH);
+  const depth = 3 + Math.round((1 - g.cell / 24) * 2);   // finer grain → more, smaller boxes
+  (function split(x, y, w, h, dep) {
+    if (dep >= depth || (dep > 1 && R() < .25) || w < 70 || h < 70) { boxes.push([x, y, w, h]); return; }
+    if ((w > h) !== (R() < .25)) { const s = w * (.3 + R() * .4); split(x, y, s, h, dep + 1); split(x + s, y, w - s, h, dep + 1); }
+    else { const s = h * (.3 + R() * .4); split(x, y, w, s, dep + 1); split(x, y + s, w, h - s, dep + 1); }
+  })(50, 50, VW - 100, VH - 100, 0);
+  const words = [...TAGS, ...(g.text.trim() ? g.text.trim().toUpperCase().split(/\s+/) : [])];
+  c.font = `500 11px ${MONO}`; c.textBaseline = 'top'; c.textAlign = 'left'; c.lineWidth = 1 / k;
+  boxes.forEach(([x, y, w, h], i) => {
+    const cov = (coverAt(d, (x + w * .5) / 2, (y + h * .5) / 2, b) + coverAt(d, (x + w * .25) / 2, (y + h * .3) / 2, b) + coverAt(d, (x + w * .75) / 2, (y + h * .7) / 2, b)) / 3;
+    if (cov < .15) return;   // only where the picture is
+    if (R() < .45 + .3 * g.fuzz) {
+      if (R() < .5) c.drawImage(SRC, (x + R() * w) / 2, y / 2, 1, h / 2, x, y, w, h);   // one column smeared sideways
+      else c.drawImage(SRC, x / 2, (y + R() * h) / 2, w / 2, 1, x, y, w, h);           // one row smeared down
+    }
+    c.globalAlpha = .6; c.strokeStyle = g.ink; c.strokeRect(x, y, w, h); c.globalAlpha = 1;
+    c.fillStyle = g.ink; c.fillText(words[(R() * words.length) | 0], x + 4, y + 4); c.fillText(String(i + 1), x + 4, y + 17);
+  });
+}
+
+// type fill: the keyword's letters repeated in a monospaced grid, set only where the picture is — the picture becomes text
+function techTypeFill(c, g, seed) {
+  const R = rng(seed ^ 0x7e3), d = srcData(), b = hex2rgb(g.bg);
+  const fs = Math.max(13, g.cell * 2), cw = fs * .62, ch = fs * 1.02, txt = [...((g.text.replace(/\s/g, '') || 'IDEA').toLowerCase())];
+  c.fillStyle = paperOf(g); c.fillRect(0, 0, VW, VH);
+  // thousands of fillText calls were the slow part: the letters go white into a mask layer one whole row per fillText
+  // (monospaced, spaced out to the cell width), then every cell is coloured at once by a one-pixel-per-cell colour image laid over the mask (source-in)
+  const cols = Math.ceil(VW / cw), rows = Math.ceil(VH / ch);
+  TF_COL.width = cols; TF_COL.height = rows;
+  const cc = TF_COL.getContext('2d'), im = cc.createImageData(cols, rows), o = im.data, ink = hex2rgb(g.ink);
+  TF_LAYER.width = c.canvas.width; TF_LAYER.height = c.canvas.height;
+  const lc = TF_LAYER.getContext('2d'); lc.setTransform(c.getTransform());
+  lc.font = `500 ${fs}px ${MONO}`; lc.textBaseline = 'top'; lc.textAlign = 'left'; lc.fillStyle = '#fff';
+  lc.letterSpacing = '0px'; lc.letterSpacing = (cw - lc.measureText('0').width) + 'px';
+  const line = new Array(cols); let rowY = 0;
+  const stamp = (l, x) => { line[Math.round(x / cw)] = l; };
+  const flush = () => { lc.fillText(line.join(''), 0, rowY); line.fill(' '); };
+  line.fill(' ');
+  let n = 0;
+  for (let y = 0, j = 0; y < VH; y += ch, j++, flush(), rowY = y) for (let x = 0, i = 0; x < VW; x += cw, n++, i++) {
+    const sx = (x + cw / 2) / 2, sy = (y + ch / 2) / 2, cov = coverAt(d, sx, sy, b), p = (j * cols + i) * 4;
+    if (cov < .08) { if (R() < .004 + .02 * g.fuzz) { stamp(txt[n % txt.length], x, y); o[p] = ink[0]; o[p + 1] = ink[1]; o[p + 2] = ink[2]; o[p + 3] = 89; } continue; }   // a few strays in the empty paper
+    if (cov < R() * (.3 + .5 * g.fuzz)) continue;   // the picture's soft edges break up
+    const s = srcIdx(sx, sy), m = 1 / Math.max(cov, .4);   // the source colour pushed back to full strength (as pushed())
+    stamp(txt[n % txt.length], x, y);
+    o[p] = b[0] + (d[s] - b[0]) * m; o[p + 1] = b[1] + (d[s + 1] - b[1]) * m; o[p + 2] = b[2] + (d[s + 2] - b[2]) * m; o[p + 3] = (.8 + .2 * cov) * 255;
+  }
+  cc.putImageData(im, 0, 0);
+  lc.globalCompositeOperation = 'source-in'; lc.imageSmoothingEnabled = false; lc.drawImage(TF_COL, 0, 0, cols * cw, rows * ch);
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(TF_LAYER, 0, 0); c.restore();
+}
+const TF_COL = document.createElement('canvas'), TF_LAYER = document.createElement('canvas');   // type fill: per-cell colours, letter mask layer
+
+// raised points: a soft, washed-out picture with white points beaded along its edges, like braille
+function techPoints(c, g, seed) {
+  const R = rng(seed ^ 0x3c7), k = canvasScale(c), d = srcData();
+  c.fillStyle = paperOf(g); c.fillRect(0, 0, VW, VH);
+  c.save(); c.filter = `blur(${(3 + 9 * g.fuzz) * k}px) saturate(.75)`; c.drawImage(SRC, 0, 0, VW, VH); c.restore();
+  c.fillStyle = 'rgba(255,255,255,.28)'; c.fillRect(0, 0, VW, VH);
+  const step = Math.max(14, g.cell * 2), r = step * .42;
+  for (let y = step; y < VH - step; y += step) for (let x = step; x < VW - step; x += step) {
+    // edges anywhere in the cell (not just its centre), so thin outlines still catch points
+    let e = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) e = Math.max(e, edgeAt(d, (x + i * step / 3) / 2, (y + j * step / 3) / 2));
+    if (e < .05 || R() > e * 6) continue;
+    const px = x + (R() - .5) * step * .4, py = y + (R() - .5) * step * .4;
+    c.fillStyle = 'rgba(0,0,0,.2)'; circle(c, px + r * .25, py + r * .35, r);   // a little shadow so the point reads as raised
+    c.fillStyle = '#ffffff'; circle(c, px, py, r);
+  }
+}
+
+// tracking overlay: the picture as it is, with detected-looking markers, thin links, tiny labels and a column of coordinates
+const TRACK_MARK = [2, 4.5];   // tracking markers: half-size range in poster units (the poster is 800 wide)
+function techTracking(c, g, seed) {
+  const R = rng(seed ^ 0x9a1), k = canvasScale(c), d = srcData(), acc = R() < .5 ? '#ff2b2b' : '#1f5bff', sq = acc !== '#ff2b2b';
+  c.fillStyle = paperOf(g); c.fillRect(0, 0, VW, VH); c.drawImage(SRC, 0, 0, VW, VH);
+  const pts = [], want = Math.round(25 + 50 * g.fuzz), gap = 14 + g.cell;
+  for (let t = 0; t < 4000 && pts.length < want; t++) {
+    const x = 40 + R() * (VW - 80), y = 40 + R() * (VH - 80);
+    if (edgeAt(d, x / 2, y / 2) < .12 || pts.some(p => Math.hypot(p[0] - x, p[1] - y) < gap)) continue;
+    pts.push([x, y]);
+  }
+  const kw = (g.text.trim() || 'idea').toLowerCase();
+  c.strokeStyle = acc; c.lineWidth = 1 / k; c.globalAlpha = .55;
+  for (let i = 1; i < pts.length; i++) if (R() < .35) { c.beginPath(); c.moveTo(...pts[i - 1]); c.lineTo(...pts[i]); c.stroke(); }
+  c.globalAlpha = 1; c.font = `500 10px ${MONO}`; c.textBaseline = 'middle'; c.textAlign = 'left';
+  pts.forEach(([x, y], i) => {
+    c.fillStyle = acc; const s = TRACK_MARK[0] + R() * (TRACK_MARK[1] - TRACK_MARK[0]);
+    if (sq) c.fillRect(x - s, y - s, s * 2, s * 2); else circle(c, x, y, s);
+    if (R() < .4) c.fillText(`${kw} ${String(i).padStart(2, '0')}`, x + s + 4, y);
+  });
+  c.fillStyle = g.ink; c.font = `500 12px ${MONO}`; c.textBaseline = 'top';
+  for (let i = 0; i < 9; i++) c.fillText(`0, ${(R() * 600).toFixed(2)}`, VW - 140, 60 + i * 15);
+}
+
+// pixel blocks: patches of the picture turned into big flat squares, a few left empty and ruled
+function techBlocks(c, g, seed) {
+  const R = rng(seed ^ 0x4b2), k = canvasScale(c), d = srcData(), b = hex2rgb(g.bg), B = Math.max(14, g.cell * 3.2);
+  c.fillStyle = paperOf(g); c.fillRect(0, 0, VW, VH); c.drawImage(SRC, 0, 0, VW, VH);
+  const spots = [];
+  for (let t = 0; t < 500 && spots.length < 2 + (R() * 2 | 0); t++) { const x = R() * VW, y = R() * VH; if (coverAt(d, x / 2, y / 2, b) > .4) spots.push([x, y, 140 + R() * 180]); }
+  if (!spots.length) spots.push([VW / 2, VH / 2, 260]);
+  c.lineWidth = 1 / k;
+  for (let y = 0; y < VH; y += B) for (let x = 0; x < VW; x += B) {
+    const cx = x + B / 2, cy = y + B / 2, near = Math.min(...spots.map(([sx, sy, sr]) => Math.hypot(cx - sx, cy - sy) / sr));
+    if (near > .6 + .4 * R() * (.5 + g.fuzz)) continue;   // ragged patch edges
+    if (R() < .22) { c.fillStyle = '#ffffff'; c.fillRect(x + 1, y + 1, B - 2, B - 2); c.strokeStyle = g.ink; c.globalAlpha = .5; c.strokeRect(x + 1, y + 1, B - 2, B - 2); c.globalAlpha = 1; }
+    else { const i = srcIdx(cx / 2, cy / 2); c.fillStyle = `rgb(${d[i]},${d[i + 1]},${d[i + 2]})`; c.fillRect(x + 1, y + 1, B - 2, B - 2); }
+  }
+}
+// two techniques meant for the WEIRD ideas, worked at the source's half size (cheap) then scaled up
+const WORK = document.createElement('canvas'); WORK.width = VW / 2; WORK.height = VH / 2;
+const workCtx = () => { const w = WORK.getContext('2d', { willReadFrequently: true }); w.setTransform(1, 0, 0, 1, 0, 0); w.filter = 'none'; w.globalAlpha = 1; return w; };
+// a fixed field of coloured grain and a posterise lookup, made once (per-pixel random numbers were the slow part)
+const GRAIN = (() => { const n = new Int16Array(VW / 2 * VH / 2 * 4 + 7); let s = 0x2545f491; for (let i = 0; i < n.length; i++) { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; n[i] = (s & 255) - 128; } return n; })();
+const POSTER = (() => { const t = new Uint8Array(768), st = 255 / 5; for (let v = 0; v < 768; v++) t[v] = Math.round(clamp(v - 256, 0, 255) / st) * st; return t; })();
+function splitWord(s) { s = (s.trim() || 'IDEA').toUpperCase(); if (s.length < 6) return [s]; const m = Math.ceil(s.length * .35); return [s.slice(0, m), s.slice(m)]; }
+
+// smear: the picture drips — each column is torn at a wandering line and its last row dragged down — then buried in coloured noise, with thin type on top
+function techSmear(c, g, seed) {
+  const R = rng(seed ^ 0x6d2b), w = workCtx(), sw = WORK.width, sh = WORK.height, ph = R() * 6, ph2 = R() * 6, ph3 = R() * 6;
+  w.fillStyle = g.bg; w.fillRect(0, 0, sw, sh); w.drawImage(SRC, 0, 0);
+  const src = w.getImageData(0, 0, sw, sh).data, out = w.createImageData(sw, sh), o = out.data;
+  const cut = new Float32Array(sw), drag = new Float32Array(sw), amp = 8 + 16 * g.fuzz;
+  for (let x = 0; x < sw; x++) { const n = .5 + .5 * (.6 * Math.sin(x * .017 + ph) + .4 * Math.sin(x * .043 + ph2)); cut[x] = sh * (.1 + .75 * n); drag[x] = .04 + .12 * Math.sin(x * .09 + ph2) ** 2; }
+  const amt = (80 + 70 * g.fuzz) / 256, off = (seed >>> 0) % 9973 * 3, NL = GRAIN.length;
+  // sway = sin(y·a + x·b): split with the angle-sum rule so the sines are worked out per row and per column, not per pixel
+  const sA = new Float32Array(sh), cA = new Float32Array(sh), s2 = new Float32Array(sh), sB = new Float32Array(sw), cB = new Float32Array(sw);
+  for (let y = 0; y < sh; y++) { sA[y] = Math.sin(y * .035 + ph3); cA[y] = Math.cos(y * .035 + ph3); s2[y] = .5 * Math.sin(y * .11 + ph); }
+  for (let x = 0; x < sw; x++) { sB[x] = Math.sin(x * .006); cB[x] = Math.cos(x * .006); }
+  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+    const dx = amp * (sA[y] * cB[x] + cA[y] * sB[x] + s2[y]);   // liquid sideways sway
+    const sy = y > cut[x] ? cut[x] + (y - cut[x]) * drag[x] : y;                               // below the tear the picture is dragged down
+    const i = ((clamp(sy, 0, sh - 1) | 0) * sw + clamp((x + dx) | 0, 0, sw - 1)) * 4, j = (y * sw + x) * 4;
+    const m = (src[i] + src[i + 1] + src[i + 2]) / 3;
+    for (let k = 0; k < 3; k++) { const v = (m + (src[i + k] - m) * 1.9 + GRAIN[(j + k + off) % NL] * amt + 256) | 0; o[j + k] = POSTER[v < 0 ? 0 : v > 767 ? 767 : v]; }   // saturated, grainy, posterised
+    o[j + 3] = 255;
+  }
+  w.putImageData(out, 0, 0);
+  c.save(); c.imageSmoothingEnabled = false; c.drawImage(WORK, 0, 0, VW, VH); c.restore();
+  const lines = splitWord(g.text), fs = Math.min(230, 680 / Math.max(...lines.map(l => l.length)) * 1.6);
+  c.save(); c.fillStyle = 'rgba(255,255,255,.88)'; c.textBaseline = 'top'; c.font = `300 ${fs}px "Inter Tight", "Pretendard", sans-serif`;
+  lines.forEach((l, i) => c.fillText(l, 36, 30 + i * fs * .92));
+  c.font = `400 13px "Inter Tight", "Pretendard", sans-serif`;
+  const kw = (g.text.trim() || 'IDEA').toUpperCase();
+  c.fillText(`${kw} IS FLEETING. IT IS NOT MEANT TO LAST FOREVER, AND MAYBE THAT IS THE POINT.`, 40, 40 + lines.length * fs * .92);
+  [`${kw} IS A FEELING SO INTENSE THAT EVERYTHING ELSE DISSOLVES INTO THE BACKGROUND,`, `A RUSH THAT MAKES THE ORDINARY FEEL WEIGHTLESS, AS IF NOTHING ELSE`, `IN THE WORLD MATTERS IN THAT MOMENT.`].forEach((t, i) => c.fillText(t, 40, VH - 80 + i * 17));
+  c.restore();
+}
+
+// glow: shapes dissolve into soft grey light — the picture is shrunk, blurred hard, its coverage turned into a luminous tone, then smoothly enlarged
+function techGlow(c, g, seed) {
+  const R = rng(seed ^ 0x1f7a), w = workCtx(), gw = 80, gh = 100, b = hex2rgb(g.bg);
+  WORK.width = gw; WORK.height = gh;
+  const x = WORK.getContext('2d', { willReadFrequently: true });
+  x.fillStyle = g.bg; x.fillRect(0, 0, gw, gh); x.filter = `blur(${3 + 4 * g.fuzz}px)`; x.drawImage(SRC, 0, 0, gw, gh); x.filter = 'none';
+  const im = x.getImageData(0, 0, gw, gh), d = im.data, covs = new Float32Array(gw * gh);
+  let lo = 1, hi = 0;
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) { const cv = Math.hypot(d[i] - b[0], d[i + 1] - b[1], d[i + 2] - b[2]) / 255; covs[p] = cv; lo = Math.min(lo, cv); hi = Math.max(hi, cv); }
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const cov = clamp((covs[p] - lo) / Math.max(.08, hi - lo), 0, 1), t = cov * cov * (3 - 2 * cov);   // the picture's own range, so a full-frame picture still has shape
+    const v = 92 + 160 * t - 40 * Math.max(0, Math.sin(t * 7.5) * (1 - t)) + (R() - .5) * 6;   // a faint chrome ring where the light falls off
+    d[i] = d[i + 1] = d[i + 2] = clamp(v, 0, 255); d[i + 3] = 255;
+  }
+  x.putImageData(im, 0, 0);
+  c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(WORK, 0, 0, gw, gh, 0, 0, VW, VH); c.restore();
+  WORK.width = VW / 2; WORK.height = VH / 2;
+  const kw = (g.text.trim() || 'IDEA').toUpperCase(), tc = () => [0, 0, 0, 0].map(() => String((R() * 60) | 0).padStart(2, '0')).join(':');
+  c.save(); c.fillStyle = '#f4f4f2'; c.textBaseline = 'top'; c.font = `500 15px "Inter Tight", "Pretendard", sans-serif`;
+  [`${kw} — SECOND EXHIBITION`, 'EMBRACE: WANDER BETWEEN', 'THE PAST AND THE FUTURE'].forEach((t, i) => c.fillText(t, 44, 40 + i * 19));
+  c.fillText(tc(), 44, 470); c.fillText(tc(), VW - 150, 470);
+  c.fillText('SEOUL, 2026 / 10:00 AM – 8:30 PM', 44, VH - 70); c.textAlign = 'right'; c.fillText(kw, VW - 44, VH - 70);
+  c.restore();
+}
+const TECH_FN = { dots: techDots, frost: techFrost, stretch: techStretch, typefill: techTypeFill, points: techPoints, tracking: techTracking, blocks: techBlocks, smear: techSmear, glow: techGlow };
+
+// dot screen (the first technique): blurred (Fuzz), sampled on a grid (Size) and re-printed as dots
+function techDots(c, g, seed) {
+  const cell = g.cell || 9, cols = Math.ceil(VW / cell), rows = Math.ceil(VH / cell);
+  SMALL.width = cols; SMALL.height = rows;
+  const mx = SMALL.getContext('2d', { willReadFrequently: true });
+  mx.fillStyle = g.bg; mx.fillRect(0, 0, cols, rows);
+  mx.filter = g.fuzz > 0 ? `blur(${g.fuzz * 1.8}px)` : 'none'; mx.drawImage(SRC, 0, 0, cols, rows); mx.filter = 'none';
+  const d = mx.getImageData(0, 0, cols, rows).data, [br, bgg, bb] = hex2rgb(g.bg), R = rng(seed ^ 0x5bd1e995);
+  const [pr, pg, pb] = [br, bgg, bb].map(v => Math.round(244 + (v - 244) * .1));   // paper: near white with a hint of the idea's background
+  c.fillStyle = `rgb(${pr},${pg},${pb})`; c.fillRect(0, 0, VW, VH);
+  const round = g.dot === 'circle';
+  // dots are grouped by (slightly rounded) colour and each group is filled in one go — far faster than one fill per dot when dots are small
+  const groups = new Map(), q = v => clamp(v, 0, 255) >> 3;   // colour rounded to 5 bits a channel, packed into one number (building a string per dot was slow)
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+    const i = (y * cols + x) * 4, r = d[i], gg = d[i + 1], b = d[i + 2];
+    const cov = clamp(Math.hypot(r - br, gg - bgg, b - bb) / 170, 0, 1);
+    if (cov < .05) continue;
+    const th = (BAYER[(y & 3) * 4 + (x & 3)] + .5) / 16;
+    let s;
+    if (cov > th) s = cell * (.5 + .42 * cov);
+    else if (R() < cov * (.15 + .4 * g.fuzz)) s = cell * .32;   // stray speckles where the image fades out
+    else continue;
+    const k = 1 / Math.max(cov, .4);   // blur greys colours toward the paper — push them back to full strength
+    const key = q(br + (r - br) * k) << 10 | q(bgg + (gg - bgg) * k) << 5 | q(bb + (b - bb) * k);
+    let p = groups.get(key); if (!p) groups.set(key, p = new Path2D());
+    const px = (x + .5) * cell, py = (y + .5) * cell;
+    if (round) { p.moveTo(px + s / 2, py); p.arc(px, py, s / 2, 0, Math.PI * 2); } else p.rect(px - s / 2, py - s / 2, s, s);
+  }
+  groups.forEach((p, key) => { c.fillStyle = `rgb(${(key >> 10) << 3},${(key >> 5 & 31) << 3},${(key & 31) << 3})`; c.fill(p); });
+}
+function paint(canvas, node) {
+  const c = canvas.getContext('2d');
+  c.setTransform(canvas.width / VW, 0, 0, canvas.height / VH, 0, 0);
+  renderGraphic(c, node.gene, node.seed);
+}
+
+// ---------------------------------------------------------------- AI directions
+const SYS = `You are an experimental graphic designer. From the user's keyword, propose 6 poster graphic directions.
+The first 3 are the ordinary directions the keyword suggests right away (mood "normal"); the last 3 are deliberately surreal and absurd (mood "weird") — odd associations, puns, clashing colors, exaggerated composition.
+Write everything in English. Output JSON only: {"directions":[{"mood","title"(2-3 English words, Title Case),"why"(one short English sentence),"text"(short poster text, English uppercase, max 20 chars),
+"bg"(hex),"ink"(hex),"colors"(2-5 hex),"form"(circle|square|triangle|line|letter),"layout"(grid|radial|scatter|stack|spiral|wave),
+"count"(integer 1-200),"scale"(0.2-3),"sizeVar"(0-1),"distort"(0-1),"rotate"(0-1),"typeMode"(big|center|repeat|scatter|none),"typeSize"(0.3-2),"blend"(true|false),"weird"(0-1),"cell"(dot grid size, integer 4-10; keep it fine, mostly 4-6),"fuzz"(0-1, how much edges break into scattered dots),"dot"(square|circle),"tech"(how the picture is printed: dots = halftone dot screen | frost = seen through frosted glass | stretch = slit-scan boxes with smeared pixels and tiny labels | typefill = the picture made of repeated letters | points = white braille-like points along the edges of a soft picture | tracking = data overlay of markers and coordinates | blocks = patches of big pixel squares | smear = the picture drips downward in torn columns under coloured noise, thin type on top | glow = shapes dissolve into soft grey light with small scattered captions)}]}
+The 3 weird directions should prefer "smear" and "glow".
+Give the 6 directions 6 different "tech" values.
+Each direction also has "prompt": an image-model prompt for ONE picture of the keyword — for normal directions a literal, instantly recognisable depiction of the keyword itself (e.g. sea → waves, horizon, a boat); for weird ones a surreal, absurd twist on the keyword. Describe subject and composition only, no text in the image.
+Keep "count" low (0-12) so the picture stays visible. Normal directions use weird 0-0.15. The 3 weird directions must be completely different ideas from each other.`;
+
+function sanitize(d) {
+  const g = { ...clone(BASE), title: String(d.title || 'Idea').slice(0, 24), why: String(d.why || '').slice(0, 60), mood: d.mood === 'weird' ? 'weird' : 'normal' };
+  if (typeof d.text === 'string' && d.text.trim()) g.text = d.text.trim().slice(0, 24);
+  if (isHex(d.bg)) g.bg = d.bg.trim(); if (isHex(d.ink)) g.ink = d.ink.trim();
+  if (Array.isArray(d.colors)) { const p = d.colors.filter(isHex).map(v => v.trim()); if (p.length) g.colors = p.slice(0, 6); }
+  if (FORMS[d.form]) g.form = d.form; if (LAYOUTS[d.layout]) g.layout = d.layout; if (TYPES[d.typeMode]) g.typeMode = d.typeMode;
+  g.blend = !!d.blend; if (DOTS[d.dot]) g.dot = d.dot; if (TECHS[d.tech]) g.tech = d.tech;
+  if (MOTIFS[d.motif]) g.motif = d.motif; if (MOTIFS[d.mash]) { g.mash = d.mash; g.mashV = clamp(d.mashV | 0, 0, 2); }
+  g.variant = clamp(d.variant | 0, 0, 2); if (typeof d.img === 'string') g.img = d.img;
+  if (d.mods && typeof d.mods === 'object') g.mods = { flip: d.mods.flip ? 1 : 0, inText: d.mods.inText ? 1 : 0, tile: clamp(d.mods.tile | 0, 0, 6), zoom: clamp(+d.mods.zoom || 0, 0, 5), melt: clamp(+d.mods.melt || 0, 0, 1) };
+  if (typeof d.prompt === 'string') g.prompt = d.prompt.slice(0, 500);
+  for (const k in NUM) if (typeof d[k] === 'number' && isFinite(d[k])) { const [a, b, step] = NUM[k]; g[k] = clamp(step ? Math.round(d[k]) : d[k], a, b); }
+  return g;
+}
+
+async function askOpenAI(kw) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + $('key').value.trim() },
+    body: JSON.stringify({ model: $('model').value.trim() || 'gpt-4o-mini', temperature: 1, response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: SYS }, { role: 'user', content: 'Keyword: ' + kw }] }),
+  });
+  if (!res.ok) throw new Error('API ' + res.status + ' ' + (await res.text()).slice(0, 200));
+  const dirs = JSON.parse((await res.json()).choices[0].message.content).directions;
+  const norm = dirs.filter(d => d.mood !== 'weird').slice(0, 3), weird = dirs.filter(d => d.mood === 'weird').slice(0, 3);
+  if (norm.length < 3 || weird.length < 3) throw new Error('expected 6 directions');
+  return [...norm, ...weird].map(sanitize);
+}
+
+// the six first ideas each get a different print technique (the AI's picks are kept unless two clash)
+// WEIRD ideas get Smear and Glow first, NORMAL ideas the quieter prints
+function spreadTechs(gens, fresh) {
+  const shuffle = a => a.sort(() => Math.random() - .5), used = new Set();
+  const normalPool = shuffle(Object.keys(TECHS).filter(t => !WEIRD_TECHS.includes(t))), weirdPool = [...shuffle([...WEIRD_TECHS]), ...normalPool];
+  gens.forEach(g => { if (fresh || !g.tech || used.has(g.tech)) g.tech = (g.mood === 'weird' ? weirdPool : normalPool).find(t => !used.has(t)); used.add(g.tech); });
+}
+// built-in generator when there is no API key: keyword → palette/form guess + templates
+const KW_HINT = [
+  [/바다|sea|ocean|파도|물|wave|여름|summer|water/i, 'sea', 'circle'], [/숲|forest|나무|풀|tree|자연|nature/i, 'forest', 'triangle'], [/사랑|love|하트|연애|heart/i, 'red', 'circle'],
+  [/밤|night|별|우주|꿈|dream|moon|달|space|star/i, 'night', 'circle'], [/도시|city|건물|빌딩|grid/i, 'mono', 'square'], [/봄|꽃|flower|spring/i, 'pastel', 'circle'],
+];
+function localDirections(kw) {
+  const R = rng(newSeed()), m = motifOf(kw), M = MOTIFS[m], T = kw.toUpperCase();
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  const mk = o => sanitize({ ...BASE, ...clone(M.pal), text: T, motif: m, count: 0, typeMode: 'big', typeSize: .5, cell: 5, fuzz: .35, ...o });
+  const normal = [0, 1, 2].map(v => mk({ mood: 'normal', title: M.titles[v], variant: v, why: m === 'word' ? `${kw}, set as a picture` : `${kw} drawn plainly: ${M.titles[v].toLowerCase()}`,
+    cell: [5, 6, 4][v], fuzz: [.3, .5, .35][v], dot: v === 1 ? 'circle' : 'square', typeMode: v === 2 ? 'none' : 'big' }));
+  const others = Object.keys(MOTIFS).filter(k => k !== m && k !== 'word'), other = others[Math.floor(R() * others.length)], vv = () => Math.floor(R() * 3);
+  const pool = [
+    () => mk({ title: 'Upside World', why: `${kw} hanging upside down`, variant: vv(), mods: { flip: 1 }, cell: 5, ...{ bg: M.pal.ink, ink: M.pal.bg } }),
+    () => mk({ title: 'Meltdown', why: `${kw} melting off the page`, variant: vv(), mods: { melt: .9 }, cell: 7, dot: 'circle', fuzz: .6 }),
+    () => mk({ title: 'Trapped in Type', why: `${kw} only visible through its own letters`, variant: vv(), mods: { inText: 1 }, typeMode: 'none', cell: 4 }),
+    () => mk({ title: 'Infinite Copies', why: `${kw} copied until it turns into wallpaper`, variant: vv(), mods: { tile: 4 }, typeMode: 'none', cell: 4 }),
+    () => mk({ title: 'Too Close', why: `So close to ${kw} it stops making sense`, variant: vv(), mods: { zoom: 3.4 }, cell: 10, fuzz: .7, typeMode: 'none' }),
+    () => mk({ title: `${cap(m === 'word' ? 'word' : m)} × ${cap(other)}`, why: `${kw} crashing into ${other}`, variant: vv(), mash: other, mashV: vv(), cell: 5, dot: 'circle' }),
+    () => mk({ title: 'Wrong Colors', why: `${kw} in colors it should never have`, variant: vv(), ...clone(PALETTES[['acid', 'red', 'night'][Math.floor(R() * 3)]]), cell: 6, weird: .25 }),
+  ];
+  const idx = []; while (idx.length < 3) { const i = Math.floor(R() * pool.length); if (!idx.includes(i)) idx.push(i); }
+  return [...normal, ...idx.map(i => ({ ...pool[i](), mood: 'weird' }))];
+}
+
+// ---------------------------------------------------------------- combine rules
+const CATS = [
+  { k: 'form', name: 'Form', keys: ['form', 'form2', 'scale', 'sizeVar', 'distort', 'rotate', 'cell', 'fuzz', 'dot', 'tech'] },
+  { k: 'color', name: 'Color', keys: ['bg', 'ink', 'colors', 'blend'] },
+  { k: 'comp', name: 'Layout', keys: ['layout', 'count', 'typeMode', 'typeSize'] },
+  { k: 'text', name: 'Text', keys: ['text'] },
+  { k: 'scene', name: 'Picture', keys: ['motif', 'variant', 'mods', 'mash', 'mashV', 'img', 'img2'] },
+];
+const avg = (x, y, step) => step ? Math.round((x + y) / 2) : (x + y) / 2;
+
+function combineGenes(A, B, pick, seed) {
+  const R = rng(seed), g = clone(A);
+  CATS.forEach(cat => {
+    const p = pick[cat.k];
+    if (p === 'a') return;
+    if (p === 'b') { cat.keys.forEach(k => { if (B[k] === undefined) delete g[k]; else g[k] = clone(B[k]); }); return; }
+    if (cat.k === 'form') {
+      g.form2 = B.form !== A.form ? B.form : (B.form2 || null);
+      ['scale', 'sizeVar', 'distort', 'rotate'].forEach(k => g[k] = avg(A[k], B[k]));
+    } else if (cat.k === 'color') {
+      const out = []; for (let i = 0; i < 4; i++) [A.colors[i], B.colors[i]].forEach(c => { if (c && !out.includes(c)) out.push(c); });
+      g.colors = out.slice(0, 6); g.blend = A.blend || B.blend;
+      if (R() < .5) { g.bg = B.bg; g.ink = B.ink; }
+    } else if (cat.k === 'comp') {
+      g.layout = R() < .5 ? A.layout : B.layout; g.count = avg(A.count, B.count, 1); g.typeSize = avg(A.typeSize, B.typeSize);
+      g.typeMode = R() < .5 ? A.typeMode : B.typeMode;
+    } else if (cat.k === 'scene') {   // both pictures at once: B shows through A
+      if (B.img) g.img2 = B.img; else { g.mash = B.motif; g.mashV = B.variant || 0; }
+    } else {
+      g.text = A.text === B.text ? A.text : (A.text + ' ' + B.text).slice(0, 24);
+    }
+  });
+  g.weird = avg(A.weird, B.weird);
+  return g;
+}
+
+// ---------------------------------------------------------------- the page: ideas sit on a ring, the picked one is shown big in the middle
+const page = { items: [], order: [], sel: null, drag: null, hover: null, W: 0, H: 0, n: 0, rot: 0, leaving: [] };
+let draft = null, view = 'flat';   // flat (ring) | tilt (ring seen at an angle)
+const pcv = $('page'), pc = pcv.getContext('2d');
+const PF = '"Inter Tight", "Pretendard", sans-serif';
+const SERIF = '"Instrument Serif", "Times New Roman", serif';   // the keyword in the ring's middle (matches #centre)
+const KW_SIZE = .092, KW_MAX = 74;   // ring keyword: size (× window height) and its cap in px; it still shrinks to fit the ring's hole
+const BG = '#000';
+const FG = '#f2f2f0', DIM = '#8a8a8a';   // black page: light type and lines
+const byId = id => page.items.find(i => i.id === id);
+const selItem = () => byId(page.sel);
+
+function mainColor(g) { // most saturated colour of an idea = its bar colour
+  let best = g.ink, bs = -1;
+  [...g.colors, g.bg].forEach(h => {
+    const [r, gg, b] = hex2rgb(h), mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), s = mx ? (mx - mn) / mx : 0;
+    if (s > bs) { bs = s; best = h; }
+  });
+  return bs < .15 ? '#222222' : best;
+}
+function makeThumb(it) { if (!it.thumb) { it.thumb = document.createElement('canvas'); it.thumb.width = 240; it.thumb.height = 300; } paint(it.thumb, it); it.color = mainColor(it.gene); }
+// new ideas are threaded into the ring right after `after`, and fly out of their first parent
+function addItem(o, after) {
+  const lazy = o.lazy; delete o.lazy;
+  const it = { id: ++page.n, num: String(page.n).padStart(2, '0'), parents: [], born: performance.now(), ...o };
+  if (!lazy) makeThumb(it);
+  else {   // painting a poster takes 50–150 ms: show its two parents blended at once (no waiting), and swap in the real poster a frame later
+    it.thumb = document.createElement('canvas'); it.thumb.width = 240; it.thumb.height = 300;
+    const tc = it.thumb.getContext('2d'), pa = byId(it.parents[0]), pb = byId(it.parents[1]);
+    if (pa) tc.drawImage(pa.thumb, 0, 0); if (pb) { tc.globalAlpha = .5; tc.drawImage(pb.thumb, 0, 0); tc.globalAlpha = 1; }
+    it.color = pa ? pa.color : '#222222';
+    setTimeout(() => { if (!page.items.includes(it)) return; makeThumb(it); drawPage(); }, LAZY_PAINT_MS);
+  }
+  page.items.push(it);
+  const i = after == null ? -1 : page.order.indexOf(after);
+  if (i < 0) page.order.push(it.id); else page.order.splice(i + 1, 0, it.id);
+  // threaded in: starts tiny in the gap between its two neighbours, which then slide apart to make room
+  const j = page.order.indexOf(it.id), a = byId(page.order[(j - 1 + page.order.length) % page.order.length]), b = byId(page.order[(j + 1) % page.order.length]);
+  if (a && b && a !== it && a.dx != null && b.dx != null) { it.dx = (a.dx + b.dx) / 2; it.dy = (a.dy + b.dy) / 2; it.ds = BORN_SIZE; it.da = Math.atan2(it.dy - geo().cy, it.dx - geo().cx) + Math.PI / 2; }
+  return it;
+}
+const hasChildren = it => page.items.some(o => o.parents.includes(it.id));
+function rootAI(it) { while (it && it.kind !== 'ai') it = byId(it.parents[0]); return it; }
+function depth(it) { return it.parents.length ? 1 + Math.max(...it.parents.map(p => byId(p) ? depth(byId(p)) : 0)) : 0; }
+function ancestors(it) { const s = new Set(), walk = x => { if (!x || s.has(x.id)) return; s.add(x.id); x.parents.forEach(p => walk(byId(p))); }; walk(it); return s; }
+const T = () => clamp(Math.min(page.W, page.H) * .1, 50, 120);
+// work screen: both side rings are far bigger than the window and cut off by its edges
+const MINI_R = .62, MINI_SHOW = 190;                               // idea ring, left: radius (× height), visible width
+// control dial, right: rows fan out from a centre off to the left, like words on a wheel
+const DIAL_R = .6, DIAL_SHOW = 300, DIAL_IN = 96, DIAL_GAP = 6;    // radius (× height), panel width, where the word in reach ends (from the right edge), gap between words
+const WORD_FONT = `600 17px ${PF}`, WORD_TRACK = '-0.17px';           // one type for both rings' words (the dial's CSS .wl matches: 600 17px, -.01em)
+const DIAL_DOT = '#f2f2f0', DIAL_DOT_R = 7, DIAL_DOT_GAP = 34;       // the dot beside the word in reach: colour, radius, distance from the word
+const pos = it => [it.dx ?? 0, it.dy ?? 0];
+
+function geo() {   // the ring screen is only the ring: centred and as big as the window allows
+  const W = page.W, H = page.H, t = T();
+  return { cx: W / 2, cy: H / 2, R: Math.min(W, H) / 2 - t * .9 - 50 };   // room outside for the kind labels
+}
+let mode = 'ring';   // ring: the bracelet alone · work: one idea big + its controls
+function setMode(m) {
+  mode = m; page.hover = null; document.body.classList.toggle('work', m === 'work');
+  sizePage(); drawPage(); kickDial();
+}
+function targets() {
+  const t = T(), N = page.order.length, { cx, cy, R } = geo(), out = new Map();
+  page.order.forEach((id, i) => {
+    const it = byId(id), a = -Math.PI / 2 + i / Math.max(1, N) * Math.PI * 2 + page.rot;
+    if (view === 'tilt') {
+      const Rx = page.W / 2 - t * .9, Ry = page.H * .17, d = (Math.sin(a) + 1) / 2;
+      out.set(it, { x: cx + Math.cos(a) * Rx, y: cy + page.H * .2 + Math.sin(a) * Ry, s: (.5 + .6 * d) * Math.min(1, 2 * Math.PI * Rx / N / t / .9), z: d });
+    } else {
+      // beads touch: few beads → big beads on a small loop; each new bead pushes the loop wider, and once it is full the beads shrink
+      // loop grows with every bead up to R; bead size is then capped so neighbours never touch, even at their inner corners
+      const n = Math.max(1, N), Rb = clamp(n * t * 1.42 * 1.55 / (2 * Math.PI), R * .85, R), arc = 2 * Math.PI * Rb / n;
+      const s = Math.min(1.55, arc / (1.08 + .625 * arc / Rb) / t);
+      out.set(it, { x: cx + Math.cos(a) * Rb, y: cy + Math.sin(a) * Rb, s, z: 0, a: a + Math.PI / 2 });
+    }
+  });
+  return out;
+}
+function settle() {   // ease display positions toward targets; true while anything still moves
+  const tg = targets(); let moving = false;
+  page.items.forEach(it => {
+    const g = tg.get(it); if (!g) return;
+    if (it.dx == null) { it.dx = g.x; it.dy = g.y; it.ds = g.s; }
+    it.dx += (g.x - it.dx) * .16; it.dy += (g.y - it.dy) * .16; it.ds += (g.s - it.ds) * .16; it.z = g.z;
+    const ga = g.a || 0; if (it.da == null) it.da = ga;
+    let da = ga - it.da; da = Math.atan2(Math.sin(da), Math.cos(da)); it.da += da * .16; if (Math.abs(da) > .002) moving = true;
+    if (Math.abs(g.x - it.dx) + Math.abs(g.y - it.dy) > .4 || Math.abs(g.s - it.ds) > .003) moving = true;
+  });
+  return moving;
+}
+
+function select(it) { page.sel = it ? it.id : null; if (it) page.miniTarget = page.order.indexOf(it.id); draft = it ? clone(it.gene) : null; syncPanel(); if (!it) setMode('ring'); else drawPage(); }
+function openWork(it) { select(it); setMode('work'); }
+
+// edits: an AI idea, a mix, a mutant or anything with children stays as it was — the edit grows a new step next to it.
+// a plain edit step with nothing after it is updated in place, so slider tweaks don't flood the ring.
+function commitEdit(label, seed) {
+  const it = selItem(); if (!it) return;
+  if (it.kind !== 'edit' || hasChildren(it)) select(addItem({ kind: 'edit', gene: clone(draft), seed: seed ?? it.seed, parents: [it.id], title: label }, it.id));
+  else { it.gene = clone(draft); if (seed != null) it.seed = seed; it.title = label; makeThumb(it); select(it); }
+}
+function combine(A, B) {
+  const pick = {}; CATS.forEach(cat => pick[cat.k] = ['a', 'b', 'mix', 'mix'][Math.floor(Math.random() * 4)]);
+  const seed = newSeed(), g = combineGenes(A.gene, B.gene, pick, seed);
+  const why = CATS.map(cat => cat.name + ' ' + ({ a: 'from ' + A.num, b: 'from ' + B.num, mix: 'mixed' })[pick[cat.k]]).join(' · ');
+  // neighbours on the ring → slot in between them; otherwise right after the one it was dropped on
+  const ia = page.order.indexOf(A.id), ib = page.order.indexOf(B.id), N = page.order.length;
+  const after = Math.abs(ia - ib) === 1 ? page.order[Math.min(ia, ib)] : (Math.abs(ia - ib) === N - 1 ? page.order[N - 1] : B.id);
+  // the same picks grouped by where they came from, for the caption: [label, parts]
+  const from = [['From ' + A.num, 'a'], ['From ' + B.num, 'b'], ['Mixed', 'mix']].map(([l, k]) => [l, CATS.filter(cat => pick[cat.k] === k).map(cat => cat.name)]).filter(r => r[1].length);
+  select(addItem({ kind: 'combo', gene: g, seed, parents: [A.id, B.id], title: A.num + '+' + B.num, why, from, lazy: true }, after));
+}
+// any bead can come off the string, AI ideas included; its children keep their grandparents as parents
+function removeItem(it) {
+  if (!it) return;
+  page.items = page.items.filter(o => o !== it); page.order = page.order.filter(id => id !== it.id);
+  page.items.forEach(o => { if (o.parents.includes(it.id)) o.parents = [...new Set(o.parents.flatMap(p => p === it.id ? it.parents : [p]))]; });
+  page.leaving.push({ it, t0: performance.now() });   // falls off and fades while its neighbours close the gap
+  if (page.sel === it.id) select(null); else drawPage();
+}
+function removeSel() { removeItem(selItem()); }
+const ringR = () => { const { cx, cy } = geo(); return page.items.length ? page.items.reduce((s, i) => s + Math.hypot(i.dx - cx, i.dy - cy), 0) / page.items.length : 0; };
+const offString = (x, y) => { const { cx, cy } = geo(); return view === 'flat' && Math.abs(Math.hypot(x - cx, y - cy) - ringR()) > T() * 1.1; };
+
+// ---------------------------------------------------------------- drawing
+function sizePage() {
+  const r = pcv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  page.W = r.width; page.H = r.height;
+  pcv.width = Math.max(1, Math.round(r.width * dpr)); pcv.height = Math.max(1, Math.round(r.height * dpr));
+  pc.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function bar(c, x0, y0, x1, y1, col, w, ext0, ext1) {
+  const a = Math.atan2(y1 - y0, x1 - x0), dx = Math.cos(a), dy = Math.sin(a);
+  c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'butt';
+  c.beginPath(); c.moveTo(x0 - dx * ext0, y0 - dy * ext0); c.lineTo(x1 + dx * ext1, y1 + dy * ext1); c.stroke();
+}
+// the big view is cached: re-dotting the poster every animation frame would be wasteful
+const bigCache = new Map();
+function poster(c, gene, seed, x, y, w) {
+  const dpr = window.devicePixelRatio || 1, key = JSON.stringify(gene) + seed + Math.round(w * dpr);
+  let cv = bigCache.get(key);
+  if (!cv) {
+    cv = document.createElement('canvas'); cv.width = Math.round(w * dpr); cv.height = Math.round(w * 1.25 * dpr); paint(cv, { gene, seed });
+    bigCache.set(key, cv); if (bigCache.size > 24) bigCache.delete(bigCache.keys().next().value);
+  }
+  c.drawImage(cv, x, y, w, w * 1.25);
+}
+function hitItem(x, y) {
+  const t = T(), list = [...page.items].sort((a, b) => (a.z || 0) - (b.z || 0));
+  for (let i = list.length - 1; i >= 0; i--) { const it = list[i], [cx, cy] = pos(it), s = it.ds || 1; if (Math.hypot(x - cx, y - cy) < t * s * .58) return it; }
+  return null;
+}
+function lineBreak(c, text, w) {
+  const out = []; let line = '';
+  for (const word of text.split(' ')) { const tst = line ? line + ' ' + word : word; if (c.measureText(tst).width > w && line) { out.push(line); line = word; } else line = tst; }
+  if (line) out.push(line); return out;
+}
+// thumbnail label: one fixed size, centred under the image, wrapped to its width ('(06) WEIRD' then the title)
+function thumbLabel(c, text, x, y, w) {
+  c.font = `500 9.5px ${PF}`; c.textAlign = 'center'; c.textBaseline = 'top'; text = text.toUpperCase();
+  const m = text.match(/^(\(\d+\) \S+) (.+)$/), lines = c.measureText(text).width <= w || !m ? lineBreak(c, text, Math.max(w, 60)) : [m[1], ...lineBreak(c, m[2], Math.max(w, 60))];
+  lines.forEach((l, i) => c.fillText(l, x + w / 2, y + i * 12));
+  c.textAlign = 'left';
+}
+
+const BAR = () => Math.max(3, T() * .08);
+const MIX_LINE = 1;   // width of the thin white line drawn while dragging one idea onto another
+// the mix line is a plucked string: its middle lags behind the pointer on a spring, wobbles when the pointer stops,
+// twangs between the two ideas when they mix, and springs back into the bead when let go on the ring
+const STR_K = .14, STR_DAMP = .86, STR_BACK = .22, STR_FADE = 650;   // stiffness, damping, retract speed, fade after release (ms)
+const STR_HOOK_KICK = 12, STR_HOOK_DAMP = .9;   // the moment the string hooks onto another idea: sideways pluck, and lighter damping so it keeps ringing
+const LAZY_PAINT_MS = 16;  // a new mix is painted this long after the drop: just enough for the drop frame to show first (larger = smoother motion, later poster)
+const STR_CLEAR = 6;   // gap kept between the string and any poster (px; covers the selection frame)
+// the ends are pinned to the middles of the ideas (a, and b once it hooks onto one) and follow them as the ring slides; only the line between moves
+const str = { on: false, a: null, b: null, ax: 0, ay: 0, bx: 0, by: 0, mx: 0, my: 0, vx: 0, vy: 0, rel: 0, back: false, last: 0, acc: 0 };
+function startString(a, bx, by) { const [ax, ay] = pos(a); Object.assign(str, { on: true, a, b: null, ax, ay, bx, by, mx: (ax + bx) / 2, my: (ay + by) / 2, vx: 0, vy: 0, rel: 0, back: false, last: performance.now(), acc: 0 }); }
+function releaseString(b) {   // b: the idea it mixed with (stays hooked to its middle), or nothing (springs back into a)
+  str.rel = performance.now(); str.b = b || null; if (!b) str.back = true;
+}
+function pinString() {   // ends follow the ideas they are pinned to (the last spot is kept if one is gone)
+  if (str.a && page.items.includes(str.a)) [str.ax, str.ay] = pos(str.a);
+  if (str.b && page.items.includes(str.b)) [str.bx, str.by] = pos(str.b);
+}
+function drawString(c) {
+  if (!str.on) return;
+  const now = performance.now(); str.acc += Math.min(100, now - str.last); str.last = now;
+  while (str.acc >= 16.7) {   // fixed 60 Hz steps, so the wobble is the same however fast the pointer reports
+    str.acc -= 16.7; pinString();
+    if (str.back) { str.bx += (str.ax - str.bx) * STR_BACK; str.by += (str.ay - str.by) * STR_BACK; }
+    const dmp = str.b ? STR_HOOK_DAMP : STR_DAMP;   // hooked between two ideas the string rings longer
+    str.vx = (str.vx + ((str.ax + str.bx) / 2 - str.mx) * STR_K) * dmp; str.vy = (str.vy + ((str.ay + str.by) / 2 - str.my) * STR_K) * dmp;
+    str.mx += str.vx; str.my += str.vy;
+  }
+  const k = str.rel ? 1 - (now - str.rel) / STR_FADE : 1;
+  if (k <= 0) { str.on = false; return; }
+  pinString();   // drawn exactly at the ideas' middles this frame
+  const qx = 2 * str.mx - (str.ax + str.bx) / 2, qy = 2 * str.my - (str.ay + str.by) / 2;   // control point that makes the curve pass through the middle
+  c.save();
+  // never over a poster (even one still fading in): every poster, plus its selection frame, is cut out of the string
+  c.beginPath(); c.rect(0, 0, page.W, page.H);
+  page.items.forEach(it => {
+    const s = T() * (it.ds || 1), hw = s / 2 + STR_CLEAR, hh = s * .625 + STR_CLEAR, co = Math.cos(it.da || 0), si = Math.sin(it.da || 0), [x, y] = pos(it);
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([u, v], i) => { const px = x + u * hw * co - v * hh * si, py = y + u * hw * si + v * hh * co; if (i) c.lineTo(px, py); else c.moveTo(px, py); });
+    c.closePath();
+  });
+  c.clip('evenodd');
+  c.globalAlpha = k; c.strokeStyle = FG; c.lineWidth = MIX_LINE; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(str.ax, str.ay); c.quadraticCurveTo(qx, qy, str.bx, str.by); c.stroke(); c.restore();
+  const moving = str.rel || Math.hypot(str.vx, str.vy) > .02 || Math.hypot(str.mx - (str.ax + str.bx) / 2, str.my - (str.ay + str.by) / 2) > .2;
+  if (moving && !animating) { animating = true; requestAnimationFrame(() => { animating = false; drawPage(); }); }
+}
+const BORN_MS = 180;   // how long a new idea takes to fade in on the ring
+const BORN_SIZE = .4;  // size a new idea starts at (× its full size) before it grows into place
+const grow = it => it.born ? clamp((performance.now() - it.born) / BORN_MS, 0, 1) : 1;
+let animating = false;
+
+const isWeird = it => it.kind === 'ai' ? it.gene.mood === 'weird' : it.gene.weird > .35 || !!(it.gene.mods && Object.values(it.gene.mods).some(Boolean));
+const kindWord = it => it.kind === 'ai' ? (it.gene.mood === 'weird' ? 'WEIRD' : 'NORMAL') : { edit: 'EDIT', combo: 'MIX', mutant: 'MUTANT' }[it.kind];
+function drawThumb(c, it, sel, showLabel) {
+  const t = T(), [cx, cy] = pos(it), w = t * (it.ds || 1), h = w * 1.25, x = cx - w / 2, y = cy - h / 2, k = grow(it);
+  c.save(); c.translate(cx, cy); c.rotate(it.da || 0);
+  if (k < 1) c.globalAlpha = clamp(k * 2, 0, 1);
+  c.drawImage(it.thumb, -w / 2, -h / 2, w, h);
+  const weird = isWeird(it);
+  if (it === sel || it === page.hover) { c.strokeStyle = FG; c.lineWidth = 2; c.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6); }
+  c.restore(); if (k < 1) return;
+  if (showLabel) { c.fillStyle = FG; thumbLabel(c, tagOf(it), x, y + h + 6, w); return; }
+  // ring: number + kind just outside the ring, always visible
+  const { cx: gx, cy: gy } = geo(), a = Math.atan2(cy - gy, cx - gx), d = Math.hypot(cx - gx, cy - gy) + h * .62 + 14;
+  c.font = `500 10px ${PF}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = weird ? FG : DIM;
+  c.fillText(`${it.num} ${kindWord(it)}`, gx + Math.cos(a) * d, gy + Math.sin(a) * d); c.textAlign = 'left';
+}
+
+// big view caption: sentence size, gap under the title, row height, label column gap
+const CAP_SAY = 13, CAP_GAP = 6, CAP_ROW = 14, CAP_COL_GAP = 14;
+function drawBig(c, sel, px, py, pw) {
+  const ph = pw * 1.25;
+  poster(c, draft, sel.seed, px, py, pw);
+  // caption: left aligned to the big view, title set to its width
+  c.fillStyle = FG; c.textBaseline = 'top'; c.textAlign = 'left';
+  c.font = `500 100px ${PF}`; const tag = tagOf(sel), tfs = clamp(100 * pw / c.measureText(tag).width, 12, 26);
+  c.font = `500 ${tfs}px ${PF}`; c.fillText(tag, px, py + ph + 10);
+  let y = py + ph + 10 + tfs * 1.15 + CAP_GAP;
+  // a mix: what came from which parent, as rows (dim label · light parts) — the title already names the parents
+  if (sel.from) {
+    c.font = `400 10px ${PF}`;
+    const lw = Math.max(...sel.from.map(r => c.measureText(r[0]).width)) + CAP_COL_GAP;   // mixed case: 'From 06', 'Form · Layout · Text'
+    sel.from.forEach(([l, parts]) => { c.fillStyle = DIM; c.fillText(l, px, y); c.fillStyle = FG; c.fillText(parts.join(' · '), px + lw, y); y += CAP_ROW; });
+    return;
+  }
+  // anything else: the one sentence saying what it is
+  const say = sel.why || sel.gene.why || '';
+  c.font = `400 ${CAP_SAY}px ${PF}`; c.fillStyle = DIM;
+  lineBreak(c, say.charAt(0).toUpperCase() + say.slice(1), pw).slice(0, 2).forEach(l => { c.fillText(l, px, y); y += CAP_SAY * 1.3; });
+}
+
+function drawPage() {
+  const moving = settle();
+  if (!animating && (moving || page.items.some(i => grow(i) < 1))) { animating = true; requestAnimationFrame(() => { animating = false; drawPage(); }); }
+  const c = pc, W = page.W, H = page.H, t = T(), sel = selItem(), anc = sel ? ancestors(sel) : null, { cx, cy, R } = geo();
+  c.fillStyle = BG; c.fillRect(0, 0, W, H);
+  $('centre').style.display = 'none';
+
+  if (mode === 'work') return drawWork(c, sel);
+  c.font = `500 12px ${PF}`; c.fillStyle = FG; c.textAlign = 'left'; c.textBaseline = 'bottom';
+  c.fillText('CLICK TO OPEN · DRAG ONTO ANOTHER TO MIX · PULL OFF TO REMOVE · SCROLL TO TURN', 20, H - 16);
+  if (page.order.length) {
+    const front = view === 'tilt' ? [...page.items].sort((a, b) => b.z - a.z)[0] : view === 'flat' ? [...page.items].sort((a, b) => a.dy - b.dy)[0] : (sel || page.items[0]);
+    c.textAlign = 'right'; c.fillText(`${front.num} — ${String(page.order.length).padStart(2, '0')}`, W - 20, H - 16); c.textAlign = 'left';
+  }
+
+  const dg = page.drag, pulling = dg && dg.moved && !page.hover && offString(dg.x, dg.y);
+  if (!pulling) drawString(c);
+
+  const sorted = [...page.items].sort((a, b) => (a.z || 0) - (b.z || 0));
+
+  sorted.filter(it => view !== 'tilt' || it.z < .5).forEach(it => drawThumb(c, it, sel, false));
+  // the bracelet's empty middle carries the keyword input, sized to the hole
+  centreNote(c, cx, cy, page.items.length ? page.items.reduce((s, i) => s + Math.hypot(i.dx - cx, i.dy - cy), 0) / page.items.length - t * .6 : 1e9);
+  if (view === 'tilt') sorted.filter(it => it.z >= .5).forEach(it => drawThumb(c, it, sel, false));
+  // pulled off the string: a ghost of the bead follows the pointer
+  if (pulling) {
+    const w = t * (dg.item.ds || 1);
+    c.save(); c.globalAlpha = .55; c.translate(dg.x, dg.y); c.rotate(-.15); c.drawImage(dg.item.thumb, -w / 2, -w * .625, w, w * 1.25); c.restore();
+    c.font = `500 10px ${PF}`; c.fillStyle = '#d82a33'; c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText('RELEASE TO REMOVE', dg.x, dg.y + w * .65 + 6); c.textAlign = 'left';
+  }
+  // removed beads drop and fade
+  const now = performance.now();
+  page.leaving = page.leaving.filter(l => now - l.t0 < 420);
+  page.leaving.forEach(l => {
+    const k = (now - l.t0) / 420, w = t * (l.it.ds || 1);
+    c.save(); c.globalAlpha = 1 - k; c.translate(l.it.dx, l.it.dy + k * k * 70); c.rotate((l.it.da || 0) + k * .6); c.drawImage(l.it.thumb, -w / 2, -w * .625, w, w * 1.25); c.restore();
+  });
+  if (page.leaving.length && !animating) { animating = true; requestAnimationFrame(() => { animating = false; drawPage(); }); }
+  emptyNote(c);
+}
+function centreNote(c, x, y, hole = 1e9) {   // keyword input dead centre of the ring, sized to the hole and to what is typed
+  const inp = $('kw'), word = inp.value || inp.placeholder;
+  c.font = `400 100px ${SERIF}`; const fs = clamp(Math.min(page.H * KW_SIZE, 100 * hole * 1.5 / c.measureText(word).width), 14, KW_MAX);
+  c.font = `400 ${fs}px ${SERIF}`;
+  const box = $('centre'); box.style.display = 'flex'; box.style.fontSize = fs + 'px'; box.style.left = x + 'px'; box.style.top = y + 'px';
+  inp.style.width = Math.ceil(c.measureText(word).width + fs * .15) + 'px';
+}
+// work screen: the picked idea big in the middle, its AI origin small beside it
+const ORIGIN_SIZE = .18, ORIGIN_GAP = 18, ORIGIN_CLEAR = 120;   // AI original beside the poster: width (× poster width), gap to the poster, room kept for the dial's words
+// x of the point halfway between the left ring's dot (drawMini) and the dial's dot (layoutDial)
+const dotsMid = () => ((MINI_SHOW - clamp(page.H * .075, 36, 70) * .625 - DIAL_DOT_GAP + 10) + (page.W - DIAL_IN + DIAL_DOT_GAP)) / 2;
+function drawWork(c, sel) {
+  const W = page.W, H = page.H;
+  if (!sel) return;
+  const room = W - MINI_SHOW - DIAL_SHOW;   // the space between the two cut-off rings
+  // the poster is centred halfway between the two blue dots; its AI original sits small just right of the poster, level with its top edge
+  const pw = Math.min(room * .5, (H - 200) / 1.25), ph = pw * 1.25, py = Math.max(56, (H - ph - 90) / 2);
+  const px = clamp(dotsMid() - pw / 2, MINI_SHOW + 150, W - DIAL_SHOW + 40 - pw);
+  drawBig(c, sel, px, py, pw);
+  const root = rootAI(sel), sw = Math.min(pw * ORIGIN_SIZE, (W - DIAL_IN - ORIGIN_CLEAR) - (px + pw) - ORIGIN_GAP);   // never into the dial's words
+  page.origin = null;
+  if (root && root !== sel && sw > 36) {
+    const ox = px + pw + ORIGIN_GAP;
+    page.origin = { it: root, rect: [ox, py, sw, 36 + sw * 1.25] };   // the label, poster and name: clicking any of it opens the AI origin
+    c.font = `500 10px ${PF}`; c.fillStyle = DIM; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('AI ORIGIN', ox, py);
+    poster(c, root.gene, root.seed, ox, py + 16, sw);
+    c.fillStyle = FG; c.fillText(`${root.num} ${kindWord(root)}`, ox, py + 24 + sw * 1.25);
+  }
+  page.bigRect = [px, py, pw, ph + 60];
+  drawDialRing(c);
+  drawMini(c, sel);
+  c.textAlign = 'left';
+}
+// the controls' ring on the right: its line, and a notch where the row in reach sits
+const dialGeo = () => { const r = page.H * DIAL_R; return { x: page.W - DIAL_SHOW + r, y: page.H / 2, r }; };
+function drawDialRing(c) {   // the dial draws itself (rows + dot) in the panel
+
+}
+// the bracelet again on the left, so big that only its right edge shows: the open idea sits at the middle, its neighbours above and below
+const wrapN = (d, N) => ((d % N) + N * 1.5) % N - N / 2;
+function drawMini(c, sel) {
+  const N = page.order.length; page.mini = [];
+  if (!N) return;
+  const r = page.H * MINI_R, mx = MINI_SHOW - r, my = page.H / 2, bw = clamp(page.H * .075, 36, 70), step = bw * 1.45 / r;
+  page.miniC = [mx, my, r, bw];
+  const si = Math.max(0, page.order.indexOf(sel.id));
+  if (page.miniTarget == null) page.miniTarget = si;
+  if (page.miniPos == null) page.miniPos = page.miniTarget;
+  const dp = wrapN(page.miniTarget - page.miniPos, N);   // turns toward its target (the open idea, or where the wheel left it) the shorter way round
+  if (Math.abs(dp) > .002) { page.miniPos += dp * .18; if (!animating) { animating = true; requestAnimationFrame(() => { animating = false; drawPage(); }); } } else page.miniPos = page.miniTarget;
+  page.order.forEach((id, i) => {
+    const it = byId(id), a = wrapN(i - page.miniPos, N) * step; if (Math.abs(a) > 1.4) return;
+    const x = mx + Math.cos(a) * r, y = my + Math.sin(a) * r; if (y < -bw || y > page.H + bw) return;
+    const o = clamp(1 - (Math.abs(a) - .3) / .7, .25, 1);   // fades away from the dot, like the control dial's words
+    c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2); c.globalAlpha = (it === sel || it === page.hover ? 1 : .6) * o;
+    c.drawImage(it.thumb, -bw / 2, -bw * .625, bw, bw * 1.25);
+    c.restore();
+    // its label fans out from the bead along the spoke, set like the dial's words
+    const lr = r + bw * .625 + 12;
+    c.save(); c.translate(mx + Math.cos(a) * lr, my + Math.sin(a) * lr); c.rotate(a); c.globalAlpha = (it === sel ? 1 : .6) * o;
+    c.font = WORD_FONT; c.letterSpacing = WORD_TRACK; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = FG;
+    c.fillText(`${it.num} ${kindWord(it)}`, 0, 0); c.letterSpacing = '0px'; c.restore();
+    page.mini.push({ it, x, y, s: bw * .7 });
+  });
+  c.globalAlpha = 1;
+  c.fillStyle = DIAL_DOT; circle(c, MINI_SHOW - bw * .625 - DIAL_DOT_GAP + 10, my, DIAL_DOT_R);   // the dot beside the open idea, mirroring the dial's
+  c.fillStyle = page.hover === 'centre' ? FG : DIM; c.font = WORD_FONT; c.letterSpacing = WORD_TRACK; c.textAlign = 'left'; c.textBaseline = 'middle';
+  c.fillText('← RING', 20, my); c.letterSpacing = '0px';
+}
+// the mouse wheel turns the left ring too; when it stops, it settles on the nearest bead and opens it, no click needed
+let miniSnap = 0;
+function turnMini(d) {
+  page.miniTarget = (page.miniTarget ?? page.miniPos ?? 0) + d / (clamp(page.H * .075, 36, 70) * 1.45);
+  clearTimeout(miniSnap); miniSnap = setTimeout(() => {
+    page.miniTarget = Math.round(page.miniTarget);
+    const N = page.order.length, it = N && byId(page.order[((page.miniTarget % N) + N) % N]);
+    if (it && it.id !== page.sel) { const keep = page.miniTarget; select(it); page.miniTarget = keep; }   // keep the unwrapped target so the ring doesn't spin back round
+    drawPage();
+  }, 140);
+  drawPage();
+}
+function hitWork(x, y) {   // what's under the pointer on the work screen
+  const m = (page.mini || []).find(b => Math.hypot(x - b.x, y - b.y) < b.s); if (m) return m.it;
+  if (page.origin) { const [ox, oy, ow, oh] = page.origin.rect; if (x > ox && x < ox + ow && y > oy && y < oy + oh) return page.origin.it; }
+  if (page.miniC && Math.hypot(x - page.miniC[0], y - page.miniC[1]) < page.miniC[2] - page.miniC[3] * .8) return 'centre';
+  const [bx, by, bw, bh] = page.bigRect || [0, 0, 0, 0];
+  if (x > bx - 20 && x < bx + bw + 20 && y > by - 20 && y < by + bh) return 'big';
+  return 'outside';
+}
+function emptyNote(c) {
+  if (page.items.length) return;
+  c.fillStyle = DIM; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `500 11px ${PF}`;
+  c.fillText('TYPE A KEYWORD · PRESS ENTER', page.W / 2, page.H / 2 + Math.min(page.H * .08, 64) + 20); c.textAlign = 'left';
+}
+
+// ---------------------------------------------------------------- pointer: click = select, drag onto idea = combine, wheel = turn the ring
+const pp = e => { const r = pcv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+pcv.addEventListener('pointerdown', e => {
+  if (mode === 'work') {   // mini bead or the AI origin → that idea · mini centre or empty space → back to the ring
+    const h = hitWork(...pp(e));
+    if (h && typeof h === 'object') openWork(h); else if (h === 'centre' || h === 'outside') setMode('ring');
+    return;
+  }
+  const [x, y] = pp(e), it = hitItem(x, y); if (!it) return;
+  pcv.setPointerCapture(e.pointerId); page.drag = { item: it, x, y, x0: x, y0: y, moved: false };
+});
+pcv.addEventListener('pointermove', e => {
+  const d = page.drag, [x, y] = pp(e);
+  if (mode === 'work') {
+    const h = hitWork(x, y), hv = h === 'big' || h === 'outside' ? null : h, hb = h === 'big';
+    pcv.style.cursor = h === 'big' ? 'default' : 'pointer';
+    if (hv !== page.hover) { page.hover = hv; drawPage(); }
+    return;
+  }
+  if (!d) { const h = hitItem(x, y); pcv.style.cursor = h ? 'grab' : 'default'; if (h !== page.hover) { page.hover = h; drawPage(); } return; }
+  d.x = x; d.y = y; if (!d.moved && Math.hypot(x - d.x0, y - d.y0) > 6) { d.moved = true; startString(d.item, x, y); }
+  const h = hitItem(x, y); page.hover = h && h !== d.item ? h : null;
+  if (d.moved) {   // over another idea: the string hooks onto its middle and is plucked once
+    if (page.hover && page.hover !== str.b) { const [hx, hy] = pos(page.hover), dx = hx - str.ax, dy = hy - str.ay, l = Math.hypot(dx, dy) || 1, s = Math.random() < .5 ? -1 : 1; str.vx += -dy / l * STR_HOOK_KICK * s; str.vy += dx / l * STR_HOOK_KICK * s; }
+    str.b = page.hover; if (!str.b) { str.bx = x; str.by = y; }
+  }
+  drawPage();
+});
+pcv.addEventListener('pointerup', () => {
+  const d = page.drag; page.drag = null; page.hover = null; if (!d) return;
+  if (!d.moved) return openWork(d.item);
+  const target = hitItem(d.x, d.y);
+  if (target && target !== d.item) { releaseString(target); combine(d.item, target); }   // the string stays hooked between the two middles as the ring makes room
+  else if (offString(d.x, d.y)) { str.on = false; d.item.dx = d.x; d.item.dy = d.y; removeItem(d.item); }   // dragged off the string → it comes off
+  else { releaseString(); drawPage(); }   // let go on the ring → the string springs back into the bead
+});
+pcv.addEventListener('pointerleave', () => { if (!page.drag && page.hover) { page.hover = null; drawPage(); } });
+pcv.addEventListener('wheel', e => {
+  if (mode === 'work') { if (pp(e)[0] < MINI_SHOW + 180) { e.preventDefault(); turnMini(e.deltaY + e.deltaX); } return; }
+  e.preventDefault(); page.rot += (e.deltaY + e.deltaX) * .0015; drawPage();
+}, { passive: false });
+window.addEventListener('keydown', e => {
+  if (/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key === 'Escape' && mode === 'work') setMode('ring');
+  if (e.key === 'Delete' || e.key === 'Backspace') removeSel();
+});
+window.addEventListener('resize', () => { sizePage(); drawPage(); kickDial(); });
+
+// ---------------------------------------------------------------- AI proposals become the first six ideas on the ring
+let proposing = false;
+async function propose() {
+  if (proposing) return; proposing = true;
+  const kw = $('kw').value.trim() || 'Graphic';
+  $('busy').style.display = 'block';
+  try {
+    let gens;
+    if ($('key').value.trim()) {
+      try { gens = await askOpenAI(kw); } catch (e) { console.warn(e); alert('AI call failed — using the built-in generator instead\n' + e.message); }
+    }
+    const fromAI = !!gens;
+    gens = gens || localDirections(kw);
+    spreadTechs(gens, !fromAI);
+    if (fromAI) gens.forEach((g, i) => { g.motif = g.motif || motifOf(kw); g.variant = i % 3; });   // stand-in picture until the painting arrives
+    page.items = []; page.order = []; page.n = 0; page.rot = 0;
+    const made = gens.map(g => addItem({ kind: 'ai', gene: g, seed: newSeed(), title: g.title }));
+    select(null);
+    if (fromAI) paintAll(made);
+  } finally { proposing = false; $('busy').style.display = 'none'; }
+}
+// with a key, every AI idea also gets a real painting of its prompt; it drops in when ready (and gets dot-screened like the rest)
+let imgN = 0;
+async function genImage(prompt) {
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + $('key').value.trim() },
+    body: JSON.stringify({ model: $('imodel').value.trim() || 'gpt-image-1', size: '1024x1536', quality: 'low', n: 1,
+      prompt: prompt + ' Flat graphic poster illustration, bold simple shapes, strong contrast, plain light background, no text, no letters.' }),
+  });
+  if (!res.ok) throw new Error('image ' + res.status + ' ' + (await res.text()).slice(0, 200));
+  const img = new Image(); img.src = 'data:image/png;base64,' + (await res.json()).data[0].b64_json; await img.decode();
+  const id = 'img' + (++imgN); IMGS.set(id, img); return id;
+}
+async function paintAll(items) {
+  let done = 0; const busy = $('busy'); busy.style.display = 'inline'; busy.textContent = `painting 0/${items.length}…`;
+  await Promise.all(items.map(it => it.gene.prompt ? genImage(it.gene.prompt).then(id => {
+    it.gene.img = id; makeThumb(it); bigCache.clear();
+    if (page.sel === it.id && draft) draft.img = id;
+    drawPage();
+  }).catch(e => console.warn(e)).finally(() => { busy.textContent = `painting ${++done}/${items.length}…`; }) : null));
+  busy.style.display = 'none'; busy.textContent = 'choosing directions…';
+}
+
+// ---------------------------------------------------------------- panel
+const ranges = [...document.querySelectorAll('input[data-k]')];
+function chipRow(id, dict, key) {
+  Object.entries(dict).forEach(([k, v]) => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = v; b.dataset[key] = k; $(id).appendChild(b); });
+}
+chipRow('techs', TECHS, 'tech'); chipRow('dots', DOTS, 'dot'); chipRow('types', TYPES, 'type');
+Object.entries(PALETTES).forEach(([k, p]) => { const b = document.createElement('button'); b.className = 'pal'; b.title = k; b.dataset.pal = k; b.innerHTML = [p.bg, ...p.colors].map(c => `<i style="background:${c}"></i>`).join(''); $('pals').appendChild(b); });
+
+// control dial: a wheel of words. They fan out from a centre off to the left, so the curve bulges right;
+// the word in reach sits by the dot, the rest swing away above and below and get cut off.
+// the mouse wheel turns it. Clicking a word turns it to the dot and opens its controls under it;
+// an action word (delete) runs only when it is already at the dot.
+const dial = { items: [...$('panel').children], pos: 0, target: null, raf: 0, eat: false, focus: null };
+$('panel').style.width = DIAL_SHOW + 'px';
+const DIAL_ROW = DIAL_SHOW - DIAL_IN - 24;   // room for a word and its open controls
+dial.items.forEach(el => el.style.width = DIAL_ROW + 'px');
+const dotEl = document.createElement('div'); dotEl.id = 'dialDot';
+dotEl.style.cssText += `width:${DIAL_DOT_R * 2}px;height:${DIAL_DOT_R * 2}px;background:${DIAL_DOT};`;
+dotEl.style.setProperty('border-radius', '50%', 'important');
+$('panel').prepend(dotEl);
+const openWord = el => dial.items.forEach(x => x.classList.toggle('open', x === el));
+// capitals sit a little above the middle of their line box: how far the middle of the caps is from it
+function capShift(lh) {
+  const c = pc; c.save(); c.font = WORD_FONT; c.textBaseline = 'alphabetic';
+  const m = c.measureText('H'), fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent; c.restore();
+  return (lh - fa - fd) / 2 + fa - m.actualBoundingBoxAscent / 2 - lh / 2;
+}
+function layoutDial() {
+  dial.raf = 0;
+  if (mode !== 'work') return;
+  const r = dialGeo().r; let s = 0;
+  // each word pivots on its own line; open controls hang below it and push the later words along
+  const rows = dial.items.map(el => { const lh = el.firstElementChild.offsetHeight; s += DIAL_GAP; const m = s + lh / 2; s += el.offsetHeight; return { el, lh, m }; });
+  const lo = rows[0].m, hi = rows[rows.length - 1].m;
+  if (dial.target == null) dial.target = dial.pos = lo;   // first word starts at the dot
+  if (dial.focus) dial.target = rows.find(o => o.el === dial.focus).m;
+  dial.target = clamp(dial.target, lo, hi);
+  dial.pos += (dial.target - dial.pos) * .2; if (Math.abs(dial.target - dial.pos) < .3) dial.pos = dial.target;
+  const near = rows.reduce((b, o) => Math.abs(o.m - dial.pos) < Math.abs(b.m - dial.pos) ? o : b);
+  // mirror of the left ring: the wheel's centre is off to the right, so the curve bulges toward the middle of the screen;
+  // each word ends on the curve and points away from that centre
+  const ex = DIAL_SHOW - DIAL_IN;   // where the word in reach ends
+  rows.forEach(({ el, lh, m }) => {
+    const a = (m - dial.pos) / r, o = clamp(1 - (Math.abs(a) - .3) / .7, .25, 1);
+    el.style.transformOrigin = `${DIAL_ROW}px ${lh / 2}px`;
+    el.style.transform = `translate(${ex + r * (1 - Math.cos(a)) - DIAL_ROW}px, ${page.H / 2 + r * Math.sin(a) - lh / 2}px) rotate(${-a}rad)`;
+    el.style.opacity = o; el.dataset.at = el === near.el ? '1' : ''; el.dataset.m = m;
+    if (el !== near.el && el !== dial.focus && el.classList.contains('open')) el.classList.remove('open');   // turned away → folds up
+  });
+  dotEl.style.transform = `translate(${ex + DIAL_DOT_GAP - DIAL_DOT_R}px, ${page.H / 2 + capShift(near.lh) - DIAL_DOT_R}px)`;
+  if (dial.pos !== dial.target) dial.raf = requestAnimationFrame(layoutDial);
+}
+function kickDial() { if (!dial.raf) dial.raf = requestAnimationFrame(layoutDial); }
+// when the wheel stops, the dial settles with the nearest word exactly at the dot (like the left ring)
+let dialSnap = 0;
+$('panel').addEventListener('wheel', e => {
+  e.preventDefault(); dial.focus = null; dial.target = (dial.target ?? dial.pos) + e.deltaY + e.deltaX; kickDial();
+  clearTimeout(dialSnap); dialSnap = setTimeout(() => { dial.target = dial.items.map(el => +el.dataset.m).reduce((b, m) => Math.abs(m - dial.target) < Math.abs(b - dial.target) ? m : b); kickDial(); }, 140);
+}, { passive: false });
+$('panel').addEventListener('pointerdown', e => {
+  const el = dial.items.find(x => x.contains(e.target)); dial.eat = false; if (!el) return;
+  const hasCtl = !!el.querySelector('.wd');
+  if (!el.dataset.at) { dial.eat = true; dial.focus = el; if (hasCtl) openWord(el); }   // not in reach: turn it to the dot (and open it)
+  else if (hasCtl && e.target.closest('.wl')) { dial.eat = true; const open = !el.classList.contains('open'); openWord(open ? el : null); dial.focus = open ? el : null; }
+  if (dial.eat) { e.preventDefault(); e.stopPropagation(); kickDial(); }
+}, true);
+$('panel').addEventListener('click', e => { if (dial.eat) { e.preventDefault(); e.stopPropagation(); dial.eat = false; } }, true);
+
+function syncPanel() {
+  kickDial();
+  const on = !!draft;
+  document.querySelectorAll('#panel input[data-k], #panel .chip, #panel .pal, #text, #del, #pngSel, #shuffle, #invert').forEach(el => el.disabled = !on);
+  if (!on) return;
+  ranges.forEach(r => { const k = r.dataset.k; r.value = draft[k]; r.parentElement.querySelector('.v').textContent = (+draft[k]).toFixed(NUM[k][2] ? 0 : 2); });
+  document.querySelectorAll('[data-tech]').forEach(b => b.classList.toggle('on', b.dataset.tech === (draft.tech || 'dots')));
+  document.querySelectorAll('[data-dot]').forEach(b => b.classList.toggle('on', b.dataset.dot === draft.dot));
+  document.querySelectorAll('[data-type]').forEach(b => b.classList.toggle('on', b.dataset.type === draft.typeMode));
+  document.querySelectorAll('[data-pal]').forEach(b => b.classList.toggle('on', PALETTES[b.dataset.pal].bg === draft.bg && PALETTES[b.dataset.pal].colors.join() === draft.colors.join()));
+  if (document.activeElement !== $('text')) $('text').value = draft.text;
+}
+
+ranges.forEach(r => {
+  r.addEventListener('input', () => { draft[r.dataset.k] = +r.value; syncPanel(); drawPage(); });
+  r.addEventListener('change', () => { const k = r.dataset.k, d = draft[k] - selItem().gene[k]; if (d) commitEdit(`${LABEL[k]} ${d > 0 ? '↑' : '↓'}`); });
+});
+$('text').addEventListener('input', () => { draft.text = $('text').value; drawPage(); });
+$('text').addEventListener('change', () => { if (draft.text.trim() && draft.text !== selItem().gene.text) commitEdit('Text'); });
+$('techs').onclick = e => { const k = e.target.dataset.tech; if (k && k !== (draft.tech || 'dots')) { draft.tech = k; commitEdit(TECHS[k]); } };
+$('dots').onclick = e => { const k = e.target.dataset.dot; if (k && k !== draft.dot) { draft.dot = k; commitEdit(DOTS[k] + ' Dots'); } };
+$('types').onclick = e => { const k = e.target.dataset.type; if (k && k !== draft.typeMode) { draft.typeMode = k; commitEdit(k === 'scatter' ? 'Scattered Type' : EN[k]); } };
+$('pals').onclick = e => { const b = e.target.closest('[data-pal]'); if (b) { Object.assign(draft, clone(PALETTES[b.dataset.pal])); commitEdit(b.dataset.pal[0].toUpperCase() + b.dataset.pal.slice(1) + ' Color'); } };
+$('invert').onclick = () => { [draft.bg, draft.ink] = [draft.ink, draft.bg]; commitEdit('Invert'); };
+$('shuffle').onclick = () => { draft.colors = draft.colors.slice().sort(() => Math.random() - .5); commitEdit('Shuffle Color', newSeed()); };
+$('del').onclick = removeSel;
+$('kw').addEventListener('keydown', e => { if (e.key === 'Enter') { if ($('kw').value.trim()) { propose(); $('kw').blur(); } } else if (e.key === 'Escape') $('kw').blur(); });
+$('kw').addEventListener('input', drawPage);
+try { $('key').value = localStorage.getItem('graphic-key') || ''; } catch (e) {}
+$('key').addEventListener('change', () => { try { localStorage.setItem('graphic-key', $('key').value.trim()); } catch (e) {} });
+
+function download(canvas, name) { const a = document.createElement('a'); a.download = name; a.href = canvas.toDataURL('image/png'); a.click(); }
+$('pngPage').onclick = () => download(pcv, 'graphic-page.png');
+$('pngSel').onclick = () => { const o = document.createElement('canvas'); o.width = 960; o.height = 1200; paint(o, { gene: draft, seed: selItem().seed }); download(o, 'graphic-' + selItem().num + '.png'); };
+
+sizePage(); syncPanel(); drawPage();
+
+// canvas text needs the web fonts first; then repaint thumbnails so their type uses them too
+Promise.all(['400', '900'].map(wt => document.fonts.load(`${wt} 20px Pretendard`, '가'))
+  .concat(['500 20px "Inter Tight"', '600 20px "Inter Tight"', 'italic 400 20px "Inter Tight"', '500 20px "IBM Plex Mono"'].map(f => document.fonts.load(f))))
+  .catch(() => {}).then(() => document.fonts.ready).then(() => { page.items.forEach(makeThumb); bigCache.clear(); drawPage(); });
+$('kw').focus();   // starts empty: type a keyword and press Enter
+</script>
+</body>
+</html>
